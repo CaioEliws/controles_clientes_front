@@ -1,12 +1,8 @@
 import { useState, useMemo } from "react";
 
-import { Sidebar } from "@/components/Sidebar";
 import { StatsCards } from "@/pages/Home/components/StatsCards";
 import { VencemHojeTable } from "@/pages/Home/components/VencemHojeTable";
 import { AtrasadasTable } from "@/pages/Home/components/AtrasadasTable";
-
-import { RxDashboard } from "react-icons/rx";
-import { FiUsers, FiAward, FiDollarSign } from "react-icons/fi";
 
 import { FinancialChart } from "./components/FinancialChart";
 import { DashboardHeader } from "./components/DashboardHeader";
@@ -22,13 +18,6 @@ interface Parcela {
 
 export function Home() {
   const [period, setPeriod] = useState<"3" | "6" | "12" | "all">("6");
-
-  const menuItems = [
-    { label: "Dashboard", path: "/", icon: <RxDashboard /> },
-    { label: "Clientes", path: "/clientes", icon: <FiUsers /> },
-    { label: "Assinaturas", path: "/assinaturas", icon: <FiAward /> },
-    { label: "Financeiro", path: "/financeiro", icon: <FiDollarSign /> },
-  ];
 
   const stats = {
     totalEmprestado: 150000,
@@ -86,8 +75,6 @@ export function Home() {
 
   return (
     <div className="flex min-h-screen bg-muted/40">
-      <Sidebar userName="Admin" menuItems={menuItems} />
-
       <main className="flex-1 p-10 space-y-10">
 
         <DashboardHeader
