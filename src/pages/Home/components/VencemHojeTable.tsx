@@ -9,19 +9,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-interface Parcela {
-  id: string;
-  cliente_nome: string;
-  valor: number;
-  status: "PENDENTE" | "PAGO" | "ATRASADO";
-}
+import type { ParcelaTable } from "@/mappers/parcela.mapper";
 
 interface Props {
-  parcelas: Parcela[];
-  onPagar: (id: string) => void;
+  parcelas: ParcelaTable[];
+  onPagar: (
+    idEmprestimo: number,
+    numeroParcela: number
+  ) => void;
 }
 
-export function VencemHojeTable({ parcelas, onPagar }: Props) {
+export function VencemHojeTable({
+  parcelas,
+  onPagar,
+}: Props) {
   return (
     <Card className="mt-8 rounded-2xl shadow-sm">
       <CardContent className="p-8">
@@ -32,58 +33,63 @@ export function VencemHojeTable({ parcelas, onPagar }: Props) {
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-1/4">Cliente</TableHead>
-              <TableHead className="w-1/4">Valor</TableHead>
-              <TableHead className="w-1/4">Status</TableHead>
-              <TableHead className="w-1/4 text-right">Ação</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead className="text-right">
+                Ação
+              </TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {parcelas.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                <TableCell
+                  colSpan={4}
+                  className="text-center py-6 text-muted-foreground"
+                >
                   Nenhuma parcela vencendo hoje
                 </TableCell>
               </TableRow>
             )}
 
             {parcelas.map((parcela) => (
-              <TableRow key={parcela.id}>
+              <TableRow
+                key={`${parcela.idEmprestimo}-${parcela.numeroParcela}`}
+              >
                 <TableCell className="font-medium">
-                  {parcela.cliente_nome}
+                  {parcela.cliente}
                 </TableCell>
 
                 <TableCell>
-                  {parcela.valor.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
+                  {parcela.valor.toLocaleString(
+                    "pt-BR",
+                    {
+                      style: "currency",
+                      currency: "BRL",
+                    }
+                  )}
                 </TableCell>
 
                 <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      parcela.status === "PAGO"
-                        ? "bg-green-100 text-green-700"
-                        : parcela.status === "ATRASADO"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {parcela.status}
-                  </span>
+                  {new Date(
+                    parcela.dataVencimento
+                  ).toLocaleDateString("pt-BR")}
                 </TableCell>
 
                 <TableCell className="text-right">
-                  {parcela.status !== "PAGO" && (
-                    <Button
-                      size="sm"
-                      onClick={() => onPagar(parcela.id)}
-                    >
-                      Marcar como Pago
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      onPagar(
+                        parcela.idEmprestimo,
+                        parcela.numeroParcela
+                      )
+                    }
+                  >
+                    Marcar como Pago
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

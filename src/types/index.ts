@@ -25,7 +25,18 @@ export interface Emprestimo {
   valorAReceber: number;
 }
 
-export interface Parcela {
-  status: "PENDENTE" | "PAGO";
+export type StatusParcela =
+  | "PENDENTE"
+  | "ATRASADO"
+  | "PAGO"
+  | "PARCIAL";
+
+export interface ParcelaResponse {
+  numeroParcela: number;
+  valorParcela: number;
+  valorPago?: number;
+  status: StatusParcela;
   dataVencimento: string;
+  idEmprestimo: number;
+  nomeCliente?: string;
 }

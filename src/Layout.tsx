@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar } from "@/components/SideBar";
 import { RxDashboard } from "react-icons/rx";
 import { FiAward, FiDollarSign, FiUsers } from "react-icons/fi";
 

@@ -82,7 +82,6 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Nome */}
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome Completo</Label>
             <Input
@@ -93,7 +92,6 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
             />
           </div>
 
-          {/* Indicador */}
           <div className="grid gap-2">
             <Label htmlFor="indicador">Quem indicou?</Label>
             <Input
@@ -104,7 +102,6 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
             />
           </div>
 
-          {/* Endereço (Rua e Número) */}
           <div className="flex gap-4">
             <div className="grid gap-2 flex-[3]">
               <Label htmlFor="rua">Rua</Label>
@@ -124,7 +121,6 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
             </div>
           </div>
 
-          {/* Bairro */}
           <div className="grid gap-2">
             <Label htmlFor="bairro">Bairro</Label>
             <Input

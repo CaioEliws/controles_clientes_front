@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useClientes } from "@/hooks/useClients";
 import { ModalCadastro } from "@/components/ModalCadastro";
-import { ModalRelatorio } from "@/components/ModalRelatorio"; // CORRIGIDO
+import { ModalRelatorio } from "@/components/ModalRelatorio";
 import { StatCard } from "@/components/StatCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
