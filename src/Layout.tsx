@@ -1,13 +1,13 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "@/components/SideBar";
 import { RxDashboard } from "react-icons/rx";
-import { FiAward, FiDollarSign, FiUsers } from "react-icons/fi";
+import { FiCalendar, FiDollarSign, FiUsers } from "react-icons/fi";
 
 export function Layout() {
   const menuItems = [
     { label: "Dashboard", path: "/", icon: <RxDashboard /> },
     { label: "Clientes", path: "/clientes", icon: <FiUsers /> },
-    { label: "Assinaturas", path: "/assinaturas", icon: <FiAward /> },
+    { label: "Parcelas", path: "/parcelas", icon: <FiCalendar /> },
     { label: "Financeiro", path: "/financeiro", icon: <FiDollarSign /> },
   ];
 

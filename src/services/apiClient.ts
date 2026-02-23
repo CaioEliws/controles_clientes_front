@@ -16,7 +16,9 @@ async function request<T>(
     throw new Error(error || "Erro na requisição");
   }
 
-  return response.json();
+  const text = await response.text();
+  
+  return text ? JSON.parse(text) : ({} as T);
 }
 
 export const apiClient = {
