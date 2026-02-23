@@ -15,7 +15,8 @@ import {
   FiAlertCircle, 
   FiCheckCircle, 
   FiTrendingUp, 
-  FiLayers 
+  FiLayers,
+  FiCalendar
 } from "react-icons/fi";
 import type { Relatorio, Emprestimo, Parcela } from "@/types";
 
@@ -32,6 +33,7 @@ export function ModalRelatorio({ clienteId, API }: Props) {
       const emprestimos: Emprestimo[] = await resEmp.json();
 
       let tEmp = 0, tPago = 0, tAberto = 0, pAtrasadas = 0;
+      let tParcelas = 0, pPagas = 0, pAVencer = 0;
 
       for (const emp of emprestimos) {
         tEmp += emp.valorEmprestado;
@@ -40,8 +42,14 @@ export function ModalRelatorio({ clienteId, API }: Props) {
 
         const resParc = await fetch(`${API}/clientes/${clienteId}/emprestimos/${emp.id}/parcelas`);
         const parcelas: Parcela[] = await resParc.json();
+        
+        tParcelas += parcelas.length;
+        pPagas += parcelas.filter(p => p.status === "PAGO").length;
         pAtrasadas += parcelas.filter(p => 
           p.status === "PENDENTE" && new Date(p.dataVencimento) < new Date()
+        ).length;
+        pAVencer += parcelas.filter(p => 
+          p.status === "PENDENTE" && new Date(p.dataVencimento) >= new Date()
         ).length;
       }
 
@@ -50,7 +58,10 @@ export function ModalRelatorio({ clienteId, API }: Props) {
         totalPago: tPago, 
         totalAberto: tAberto, 
         parcelasAtrasadas: pAtrasadas, 
-        totalEmprestimos: emprestimos.length 
+        totalEmprestimos: emprestimos.length,
+        totalParcelas: tParcelas,
+        parcelasPagas: pPagas,
+        parcelasAVencer: pAVencer
       });
     } catch (error) {
       console.error("Erro ao carregar relatório:", error);
@@ -85,13 +96,13 @@ export function ModalRelatorio({ clienteId, API }: Props) {
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 animate-pulse">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="h-20 bg-slate-100 rounded-xl" />
             ))}
           </div>
         ) : relatorio && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-            {/* VERDES: Entradas e Totais */}
+            {/* Valores Financeiros */}
             <StatSmallCard 
               label="Total Contratado" 
               value={formatCurrency(relatorio.totalEmprestado)} 
@@ -104,27 +115,45 @@ export function ModalRelatorio({ clienteId, API }: Props) {
               icon={<FiCheckCircle />}
               variant="success"
             />
-
-            {/* VERMELHOS: Pendências e Riscos */}
             <StatSmallCard 
-              label="Saldo devedor" 
+              label="Saldo Devedor" 
               value={formatCurrency(relatorio.totalAberto)} 
               icon={<FiDollarSign />}
               variant="danger"
               className="sm:col-span-2"
+            />
+
+            {/* Resumo de Parcelas e Empréstimos */}
+            <StatSmallCard 
+              label="Total de Empréstimos" 
+              value={relatorio.totalEmprestimos} 
+              icon={<FiBarChart2 />}
+              variant="neutral"
+            />
+            <StatSmallCard 
+              label="Total de Parcelas" 
+              value={relatorio.totalParcelas} 
+              icon={<FiCalendar />}
+              variant="neutral"
+            />
+            <StatSmallCard 
+              label="Parcelas Pagas" 
+              value={relatorio.parcelasPagas} 
+              icon={<FiCheckCircle />}
+              variant="success"
+            />
+            <StatSmallCard 
+              label="Parcelas a Vencer" 
+              value={relatorio.parcelasAVencer} 
+              icon={<FiCalendar />}
+              variant="neutral"
             />
             <StatSmallCard 
               label="Parcelas em Atraso" 
               value={relatorio.parcelasAtrasadas} 
               icon={<FiAlertCircle />}
               variant={relatorio.parcelasAtrasadas > 0 ? "danger" : "neutral"}
-            />
-            
-            <StatSmallCard 
-              label="Qtd. Empréstimos" 
-              value={relatorio.totalEmprestimos} 
-              icon={<FiBarChart2 />}
-              variant="neutral"
+              className="sm:col-span-2"
             />
           </div>
         )}
@@ -145,7 +174,7 @@ const StatSmallCard = ({ label, value, icon, variant, className }: CardProps) =>
   const styles = {
     success: "bg-emerald-50 text-emerald-700 border-emerald-100",
     danger: "bg-rose-50 text-rose-700 border-rose-100",
-    neutral: "bg-slate-50"
+    neutral: "bg-slate-50 text-slate-700 border-slate-200"
   };
 
   return (

@@ -13,6 +13,9 @@ export interface Relatorio {
   totalAberto: number;
   parcelasAtrasadas: number;
   totalEmprestimos: number;
+  totalParcelas: number;
+  parcelasPagas: number;
+  parcelasAVencer: number;
 }
 
 export interface Emprestimo {

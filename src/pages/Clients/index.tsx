@@ -22,7 +22,6 @@ export function Clientes() {
 
   return (
     <div className="flex min-h-screen bg-muted/40">
-      {/* IGUAL À HOME: flex-1 p-10 space-y-10 e sem o max-w-6xl */}
       <main className="flex-1 p-10 space-y-10">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold italic">Clientes</h1>
