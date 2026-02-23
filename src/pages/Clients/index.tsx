@@ -61,7 +61,11 @@ export function Clientes() {
                       <TableCell className="font-medium">{cliente.nome}</TableCell>
                       <TableCell>{cliente.nomeIndicador}</TableCell>
                       <TableCell className="text-right flex justify-end gap-2">
-                        <ModalRelatorio clienteId={cliente.id} API={API} />
+                        <ModalRelatorio
+                          clienteId={cliente.id}
+                          nomeCliente={cliente.nome}
+                          API={API}
+                        />
                         <Button 
                           variant="destructive" 
                           size="sm" 

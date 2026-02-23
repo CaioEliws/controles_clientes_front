@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useParcelas } from "@/hooks/useParcelas";
 import { useParcelasFiltradas } from "@/hooks/useParcelasFiltradas";
-import { ParcelasHeader } from "./components/ParcelasHeader";
-import { ParcelasStats } from "./components/ParcelasStats";
-import { ParcelasTable } from "./components/ParcelasTable";
-import { ParcelasPagination } from "./components/ParcelasPagination";
-import { PagarParcelaDialog } from "./components/PagarParcelaDialog";
+import { ParcelasHeader } from "@/pages/Parcelas/components/ParcelasHeader";
+import { ParcelasStats } from "@/pages/Parcelas/components/ParcelasStats";
+import { ParcelasTable } from "@/pages/Parcelas/components/ParcelasTable";
+import { ParcelasPagination } from "@/pages/Parcelas/components/ParcelasPagination";
+import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
 import type { StatusParcela } from "@/types";
 
 const ITEMS_PER_PAGE = 10;
@@ -19,6 +20,9 @@ type ParcelaSelecionada = {
 export function Parcelas() {
   const { parcelas, loading, fetchParcelas } = useParcelas();
 
+  const [searchParams] = useSearchParams();
+  const clienteParam = searchParams.get("cliente");
+
   const [selected, setSelected] =
     useState<ParcelaSelecionada | null>(null);
 
@@ -26,7 +30,9 @@ export function Parcelas() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [selectedClients, setSelectedClients] = useState<string[]>(
+    clienteParam ? [clienteParam] : []
+  );
   const [selectedStatuses, setSelectedStatuses] = useState<StatusParcela[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number | "ALL">("ALL");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
