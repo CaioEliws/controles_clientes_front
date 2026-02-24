@@ -30,4 +30,15 @@ export const apiClient = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  patch: <T>(endpoint: string, body: unknown) =>
+    request<T>(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+    
+  delete: <T>(endpoint: string) =>
+    request<T>(endpoint, {
+      method: "DELETE",
+    }),
 };

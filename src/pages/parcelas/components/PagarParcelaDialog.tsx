@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/services/apiClient";
 
+import { useForm, useWatch } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -20,6 +24,13 @@ type Props = {
   onSuccess: () => Promise<void>;
 };
 
+const schema = z.object({
+  valorPago: z
+    .string()
+    .min(1, "Informe um valor")
+    .refine((v) => Number(v) > 0, "O valor deve ser maior que zero"),
+});
+
 export function PagarParcelaDialog({
   open,
   onOpenChange,
@@ -28,31 +39,38 @@ export function PagarParcelaDialog({
   valorParcela,
   onSuccess,
 }: Props) {
-  const [valorDigitado, setValorDigitado] = useState<number>(valorParcela);
-  const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      valorPago: String(valorParcela),
+    },
+  });
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+    control,
+  } = form;
+
+  const valorDigitado = Number(useWatch({ control, name: "valorPago" }) || "0");
 
   useEffect(() => {
     if (open) {
-      setValorDigitado(valorParcela);
-      setErro(null);
+      reset({ valorPago: String(valorParcela) });
     }
-  }, [open, valorParcela]);
+  }, [open, valorParcela, reset]);
 
-  const pagamentoTotal =
-    Math.abs(valorDigitado - valorParcela) < 0.01;
+  const pagamentoTotal = Math.abs(valorDigitado - valorParcela) < 0.01;
+  const valorMaiorQueSaldo = valorDigitado > valorParcela + 0.01;
 
-  const invalido =
-    !valorDigitado ||
-    valorDigitado <= 0 ||
-    valorDigitado > valorParcela + 0.01;
+  const onSubmit = async (data: { valorPago: string }) => {
+    const valorPago = Number(data.valorPago);
 
-  async function handlePagamento() {
-    if (invalido) return;
+    if (valorPago <= 0 || valorPago > valorParcela + 0.01) return;
 
     try {
-      setLoading(true);
-
       if (pagamentoTotal) {
         await apiClient.post("/parcelas/pagar", {
           idEmprestimo,
@@ -62,34 +80,28 @@ export function PagarParcelaDialog({
         await apiClient.post("/parcelas/pagar-parcial", {
           idEmprestimo,
           numeroParcela,
-          valorPago: valorDigitado,
+          valorPago,
         });
       }
 
       await onSuccess();
       onOpenChange(false);
-
-    } catch (error) {
-      setErro("Erro ao processar pagamento.");
-      console.error(error);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error("Erro ao pagar parcela:", err);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md rounded-2xl bg-white border-none">
         <DialogHeader>
-          <DialogTitle>
-            Pagar Parcela #{numeroParcela}
-          </DialogTitle>
+          <DialogTitle>Pagar Parcela #{numeroParcela}</DialogTitle>
           <DialogDescription>
             Quanto o cliente está pagando deste saldo?
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
             <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
               Saldo Devedor
@@ -110,42 +122,40 @@ export function PagarParcelaDialog({
             <Input
               type="number"
               step="0.01"
-              value={valorDigitado}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                setValorDigitado(val);
-                setErro(
-                  val > valorParcela
-                    ? "Valor excede o saldo!"
-                    : null
-                );
-              }}
+              {...register("valorPago")}
               className="text-lg font-bold"
             />
 
-            {erro && (
+            {errors.valorPago && (
               <p className="text-xs text-red-600 font-bold">
-                {erro}
+                {errors.valorPago.message}
+              </p>
+            )}
+
+            {valorMaiorQueSaldo && (
+              <p className="text-xs text-red-600 font-bold">
+                Valor excede o saldo!
               </p>
             )}
           </div>
-        </div>
 
-        <DialogFooter className="sm:justify-end gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancelar
-          </Button>
+          <DialogFooter className="sm:justify-end gap-2">
+            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
 
-          <Button
-            onClick={handlePagamento}
-            disabled={loading || invalido}
-          >
-            {loading ? "Processando..." : "Confirmar Pagamento"}
-          </Button>
-        </DialogFooter>
+            <Button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                valorDigitado <= 0 ||
+                valorMaiorQueSaldo
+              }
+            >
+              {isSubmitting ? "Processando..." : "Confirmar Pagamento"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -84,7 +84,7 @@ export function SimulacaoEmprestimo() {
                   </div>
 
                   <div className="flex justify-between">
-                    <span>Total Pago</span>
+                    <span>Total á pagar</span>
                     <span className="font-semibold">
                       R$ {simulacao.totalPago.toFixed(2)}
                     </span>
