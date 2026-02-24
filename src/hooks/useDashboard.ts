@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { parcelasService } from "@/services/parcelas.service";
 import type { ParcelaResponse } from "@/types";
 import {
@@ -6,86 +7,122 @@ import {
   type ParcelaTable,
 } from "@/mappers/parcela.mapper";
 
-export function useDashboard() {
-  const [period, setPeriod] =
-    useState<"3" | "6" | "12" | "all">("6");
+type Period = "3" | "6" | "12" | "all";
 
-  const [vencemHoje, setVencemHoje] =
-    useState<ParcelaTable[]>([]);
-  const [atrasadas, setAtrasadas] =
-    useState<ParcelaTable[]>([]);
-  const [mesAtual, setMesAtual] =
-    useState<ParcelaResponse[]>([]);
+interface Stats {
+  totalEmprestado: number;
+  totalRecebido: number;
+  totalAberto: number;
+  totalAtraso: number;
+}
 
-  const [stats, setStats] = useState({
-    totalEmprestado: 0,
-    totalRecebido: 0,
-    totalAberto: 0,
-    totalAtraso: 0,
+const filterByPeriod = (
+  parcelas: ParcelaResponse[],
+  period: Period
+) => {
+  if (period === "all") return parcelas;
+
+  const now = new Date();
+  const limite = new Date(
+    now.getFullYear(),
+    now.getMonth() - Number(period),
+    now.getDate()
+  ).getTime();
+
+  return parcelas.filter((p) => {
+    const data = new Date(p.dataVencimento).getTime();
+    return data >= limite;
   });
+};
 
-  const loadData = useCallback(async () => {
-    const [
-      vencendo,
-      atrasado,
-      pagas,
-      pendentes,
-      mes,
-    ] = await Promise.all([
-      parcelasService.getVencendoHoje(),
-      parcelasService.getPorStatus("ATRASADO"),
-      parcelasService.getPorStatus("PAGO"),
-      parcelasService.getPorStatus("PENDENTE"),
-      parcelasService.getMesAtual(),
-    ]);
+export function useDashboard() {
+  const location = useLocation();
 
-    setVencemHoje(vencendo.map(mapParcelaToTable));
-    setAtrasadas(atrasado.map(mapParcelaToTable));
-    setMesAtual(mes);
+  const [period, setPeriod] = useState<Period>("6");
+  const [vencemHoje, setVencemHoje] = useState<ParcelaTable[]>([]);
+  const [atrasadas, setAtrasadas] = useState<ParcelaTable[]>([]);
+  const [todasParcelas, setTodasParcelas] = useState<ParcelaResponse[]>([]);
+  const [loading, setLoading] = useState(false);
 
-    const totalRecebido = pagas.reduce(
-      (acc, p) => acc + (p.valorPago ?? 0),
-      0
+  const loadBaseData = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const [
+        vencendo,
+        atrasado,
+        pagas,
+        pendentes,
+      ] = await Promise.all([
+        parcelasService.getVencendoHoje(),
+        parcelasService.getPorStatus("ATRASADO"),
+        parcelasService.getPorStatus("PAGO"),
+        parcelasService.getPorStatus("PENDENTE"),
+      ]);
+
+      setVencemHoje(vencendo.map(mapParcelaToTable));
+      setAtrasadas(atrasado.map(mapParcelaToTable));
+      setTodasParcelas([
+        ...pagas,
+        ...pendentes,
+        ...atrasado,
+      ]);
+    } catch (error) {
+      console.error("Erro ao carregar dashboard:", error);
+      setVencemHoje([]);
+      setAtrasadas([]);
+      setTodasParcelas([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 🔥 Recarrega sempre que entrar na rota
+  useEffect(() => {
+    void loadBaseData();
+  }, [location.key, loadBaseData]);
+
+  const stats = useMemo<Stats>(() => {
+    const parcelasFiltradas = filterByPeriod(
+      todasParcelas,
+      period
     );
 
-    const totalAberto = pendentes.reduce(
+    const totalRecebido = parcelasFiltradas
+      .filter((p) => (p.valorPago ?? 0) > 0)
+      .reduce((acc, p) => acc + (p.valorPago ?? 0), 0);
+
+    const totalAberto = parcelasFiltradas
+      .filter((p) => p.status === "PENDENTE")
+      .reduce((acc, p) => acc + p.valorParcela, 0);
+
+    const totalAtraso = parcelasFiltradas
+      .filter((p) => p.status === "ATRASADO")
+      .reduce((acc, p) => acc + p.valorParcela, 0);
+
+    // 🔥 Agora calculamos no frontend
+    const totalEmprestado = parcelasFiltradas.reduce(
       (acc, p) => acc + p.valorParcela,
       0
     );
 
-    const totalAtraso = atrasado.reduce(
-      (acc, p) => acc + p.valorParcela,
-      0
-    );
-
-    setStats({
-      totalEmprestado: totalRecebido + totalAberto,
+    return {
+      totalEmprestado,
       totalRecebido,
       totalAberto,
       totalAtraso,
-    });
-  }, []);
-
-  // 👇 chama apenas uma vez fora do effect
-  if (vencemHoje.length === 0 && atrasadas.length === 0) {
-    void loadData();
-  }
-
-  const handlePagar = useCallback(
-    async (idEmprestimo: number, numeroParcela: number) => {
-      await parcelasService.pagar(
-        idEmprestimo,
-        numeroParcela
-      );
-      await loadData();
-    },
-    [loadData]
-  );
+    };
+  }, [todasParcelas, period]);
 
   const chartData = useMemo(() => {
+    const parcelasFiltradas = filterByPeriod(
+      todasParcelas,
+      period
+    );
+
     const grouped: Record<string, number> = {};
 
-    mesAtual.forEach((parcela) => {
+    parcelasFiltradas.forEach((parcela) => {
       const mes = new Date(
         parcela.dataVencimento
       ).toLocaleString("pt-BR", {
@@ -97,17 +134,28 @@ export function useDashboard() {
         parcela.valorParcela;
     });
 
-    const formatted = Object.entries(grouped).map(
+    return Object.entries(grouped).map(
       ([mes, recebido]) => ({
         mes,
         recebido,
       })
     );
+  }, [todasParcelas, period]);
 
-    return period === "all"
-      ? formatted
-      : formatted.slice(-Number(period));
-  }, [mesAtual, period]);
+  const handlePagar = useCallback(
+    async (idEmprestimo: number, numeroParcela: number) => {
+      try {
+        await parcelasService.pagar(
+          idEmprestimo,
+          numeroParcela
+        );
+        await loadBaseData();
+      } catch (error) {
+        console.error("Erro ao pagar parcela:", error);
+      }
+    },
+    [loadBaseData]
+  );
 
   return {
     period,
@@ -116,6 +164,7 @@ export function useDashboard() {
     atrasadas,
     stats,
     chartData,
+    loading,
     handlePagar,
   };
 }

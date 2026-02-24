@@ -5,6 +5,7 @@ import { Clientes } from "@/pages/Clients";
 import { Parcelas } from "@/pages/Parcelas";
 import { Emprestimo } from "@/pages/Emprestimo";
 import { SimulacaoEmprestimo } from "@/pages/Simulation";
+import { BackupPage } from "@/pages/BackupPage"
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/parcelas" element={<Parcelas />} />
         <Route path="/emprestimo" element={<Emprestimo />} />
         <Route path="/simulacao" element={<SimulacaoEmprestimo />} />
+        <Route path="/backup" element={<BackupPage />} />
       </Route>
     </Routes>
   );

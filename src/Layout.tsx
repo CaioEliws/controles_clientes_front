@@ -10,6 +10,7 @@ export function Layout() {
     { label: "Parcelas", path: "/parcelas", icon: <FiCalendar /> },
     { label: "Emprestimo", path: "/emprestimo", icon: <FiDollarSign /> },
     { label: "Simulação", path: "/simulacao", icon: <FiDollarSign /> },
+    { label: "Backup", path: "/backup", icon: <FiDollarSign /> },
   ];
 
   return (

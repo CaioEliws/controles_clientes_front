@@ -7,7 +7,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface Parcela {
   cliente: string;
@@ -17,54 +18,119 @@ interface Parcela {
 
 interface Props {
   parcelas: Parcela[];
+  page: number; 
+  onPrev: () => void;
+  onNext: () => void;
+  totalPages?: number; 
+  totalItems?: number;
 }
 
-export function AtrasadasTable({ parcelas }: Props) {
-  return (
-    <Card className="mt-8 rounded-2xl shadow-sm">
-      <CardContent className="p-8">
-        <h3 className="text-2xl font-semibold text-red-600 mb-6">
-          Parcelas Atrasadas
-        </h3>
+export function AtrasadasTable({
+  parcelas = [], 
+  page,
+  onPrev,
+  onNext,
+}: Props) {
+  const formatCurrency = (val: number) =>
+    val.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
 
-        <Table className="table-fixed w-full">
-          <TableHeader>
+  const ITEMS_PER_PAGE = 20;
+  const totalRegistros = parcelas.length; 
+  const totalPaginasCalculado = Math.ceil(totalRegistros / ITEMS_PER_PAGE);
+  
+  const validPage = isNaN(Number(page)) || Number(page) < 1 ? 1 : Number(page);
+  
+  const currentPage = Math.min(validPage, totalPaginasCalculado || 1);
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  
+  const parcelasPaginadas = parcelas.slice(startIndex, endIndex);
+
+  return (
+    <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden">
+      <CardContent className="p-0">
+        <div className="px-8 py-6 border-b bg-slate-50">
+          <h3 className="text-lg font-semibold text-red-600">
+            Parcelas Atrasadas
+          </h3>
+        </div>
+
+        <Table>
+          <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-1/4">Cliente</TableHead>
-              <TableHead className="w-1/4 text-center">Dias</TableHead>
-              <TableHead className="w-1/4 text-center">Valor</TableHead>
-              <TableHead className="w-1/4 text-right">Status</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead className="text-center">Dias</TableHead>
+              <TableHead className="text-center">Valor</TableHead>
+              <TableHead className="text-right">Status</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {parcelas.map((parcela, index) => (
-              <TableRow key={index} >
-                <TableCell className="font-medium">
-                  {parcela.cliente}
-                </TableCell>
-
-                <TableCell className="text-center">
-                  {parcela.diasAtraso}
-                </TableCell>
-
-                <TableCell className="text-center">
-                  {parcela.valor.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </TableCell>
-
-                <TableCell className="text-right">
-                  <Badge variant="destructive">
-                    ATRASADO
-                  </Badge>
+            {parcelasPaginadas.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="text-center py-16 text-slate-400"
+                >
+                  Nenhuma parcela encontrada para esta página.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              parcelasPaginadas.map((parcela, index) => (
+                <TableRow key={`${parcela.cliente}-${index}`} className="hover:bg-slate-50/50">
+                  <TableCell className="font-semibold text-slate-700">
+                    {parcela.cliente}
+                  </TableCell>
+
+                  <TableCell className="text-center font-medium text-red-600">
+                    {parcela.diasAtraso}
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    {formatCurrency(parcela.valor)}
+                  </TableCell>
+
+                  <TableCell className="text-right">
+                    <Badge variant="destructive">
+                      ATRASADO
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>
+
+      <CardFooter className="flex justify-between items-center px-8 py-4 bg-slate-50/50 border-t border-slate-100">
+        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          Página {currentPage} de {totalPaginasCalculado || 1} — {totalRegistros} resultados
+        </span>
+
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            disabled={currentPage <= 1} 
+            onClick={onPrev}
+          >
+            Anterior
+          </Button>
+
+          <Button 
+            size="sm" 
+            variant="outline" 
+            disabled={currentPage >= totalPaginasCalculado} 
+            onClick={onNext}
+          >
+            Próxima
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 }
