@@ -8,12 +8,13 @@ export function Layout() {
     { label: "Dashboard", path: "/", icon: <RxDashboard /> },
     { label: "Clientes", path: "/clientes", icon: <FiUsers /> },
     { label: "Parcelas", path: "/parcelas", icon: <FiCalendar /> },
-    { label: "Financeiro", path: "/financeiro", icon: <FiDollarSign /> },
+    { label: "Emprestimo", path: "/emprestimo", icon: <FiDollarSign /> },
+    { label: "Simulação", path: "/simulacao", icon: <FiDollarSign /> },
   ];
 
   return (
     <div className="flex">
-      <Sidebar userName="Meu Sistema" menuItems={menuItems} />
+      <Sidebar userName="Meu Dashboard" menuItems={menuItems} />
 
       <main className="flex-1 p-8">
         <Outlet />
