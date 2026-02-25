@@ -16,12 +16,14 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   data: {
     mes: string;
     recebido: number;
   }[];
+  loading?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,73 +47,72 @@ function CustomTooltip({ active, payload }: any) {
   return null;
 }
 
-export function FinancialChart({ data }: Props) {
+export function FinancialChart({ data, loading = false }: Props) {
   return (
     <Card className="rounded-2xl shadow-sm border">
       <CardHeader>
-        <CardTitle className="text-xl">
-          Recebimentos
-        </CardTitle>
-        <CardDescription>
-          Evolução dos últimos meses
-        </CardDescription>
+        <CardTitle className="text-xl">Recebimentos</CardTitle>
+        <CardDescription>Evolução dos últimos meses</CardDescription>
       </CardHeader>
 
       <CardContent className="h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data}>
-            
-            {/* Gradient */}
-            <defs>
-              <linearGradient id="colorRecebido" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
+        {loading ? (
+          <div className="h-full w-full space-y-4">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-full w-full rounded-xl" />
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data}>
+              <defs>
+                <linearGradient id="colorRecebido" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="hsl(var(--border))"
-              vertical={false}
-            />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+                vertical={false}
+              />
 
-            <XAxis
-              dataKey="mes"
-              tick={{ fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-            />
+              <XAxis
+                dataKey="mes"
+                tick={{ fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <YAxis
-              tickFormatter={(value) =>
-                value.toLocaleString("pt-BR", {
-                  notation: "compact",
-                })
-              }
-              tick={{ fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-            />
+              <YAxis
+                tickFormatter={(value) =>
+                  value.toLocaleString("pt-BR", { notation: "compact" })
+                }
+                tick={{ fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+              />
 
-            <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} />
 
-            <Area
-              type="monotone"
-              dataKey="recebido"
-              stroke="none"
-              fill="url(#colorRecebido)"
-            />
+              <Area
+                type="monotone"
+                dataKey="recebido"
+                stroke="none"
+                fill="url(#colorRecebido)"
+              />
 
-            <Line
-              type="monotone"
-              dataKey="recebido"
-              stroke="#22c55e"
-              strokeWidth={3}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+              <Line
+                type="monotone"
+                dataKey="recebido"
+                stroke="#22c55e"
+                strokeWidth={3}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

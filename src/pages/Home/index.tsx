@@ -1,11 +1,11 @@
-import { useState } from "react"; // 1. Importe o useState
+import { useState } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 
-import { DashboardHeader } from "./components/DashboardHeader";
-import { StatsCards } from "./components/StatsCards";
-import { FinancialChart } from "./components/FinancialChart";
-import { VencemHojeTable } from "./components/VencemHojeTable";
-import { AtrasadasTable } from "./components/AtrasadasTable";
+import { DashboardHeader } from "@/pages//Home/components/DashboardHeader";
+import { StatsCards } from "@/pages//Home/components/StatsCards";
+import { FinancialChart } from "@/pages//Home/components/FinancialChart";
+import { VencemHojeTable } from "@/pages//Home/components/VencemHojeTable";
+import { AtrasadasTable } from "@/pages//Home/components/AtrasadasTable";
 
 export function Home() {
   const {
@@ -15,35 +15,34 @@ export function Home() {
     atrasadas,
     stats,
     chartData,
-    handlePagar,
+    loading,
+    refresh,
   } = useDashboard();
 
-  // 2. Crie o estado da página aqui no Pai
   const [pageAtrasadas, setPageAtrasadas] = useState(1);
 
   return (
     <div className="flex min-h-screen bg-muted/40">
       <main className="flex-1 p-10 space-y-10">
-        <DashboardHeader
-          period={period}
-          setPeriod={setPeriod}
-        />
+        <DashboardHeader period={period} setPeriod={setPeriod} />
 
-        <StatsCards {...stats} />
+        <StatsCards loading={loading} {...stats} />
 
-        <FinancialChart data={chartData} />
+        <FinancialChart loading={loading} data={chartData} />
 
         <div className="grid gap-10">
           <VencemHojeTable
+            loading={loading}
             parcelas={vencemHoje}
-            onPagar={handlePagar}
+            onRefresh={refresh}
           />
 
-          <AtrasadasTable 
-            parcelas={atrasadas} 
+          <AtrasadasTable
+            loading={loading}
+            parcelas={atrasadas}
             page={pageAtrasadas}
-            onNext={() => setPageAtrasadas(prev => prev + 1)}
-            onPrev={() => setPageAtrasadas(prev => prev - 1)}
+            onNext={() => setPageAtrasadas((prev) => prev + 1)}
+            onPrev={() => setPageAtrasadas((prev) => Math.max(1, prev - 1))}
           />
         </div>
       </main>

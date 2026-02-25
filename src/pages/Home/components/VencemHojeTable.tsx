@@ -8,6 +8,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
 import { AlterarDataParcelaDialog } from "@/pages/Parcelas/components/AlterarDataParcelaDialog";
 
@@ -19,6 +21,8 @@ import type { ParcelaTable } from "@/mappers/parcela.mapper";
 interface Props {
   parcelas: ParcelaTable[];
   onRefresh: () => Promise<void>;
+  loading?: boolean;
+
   page?: number;
   totalPages?: number;
   totalItems?: number;
@@ -29,6 +33,7 @@ interface Props {
 export function VencemHojeTable({
   parcelas,
   onRefresh,
+  loading = false,
   page = 1,
   totalPages = 1,
   totalItems,
@@ -40,7 +45,7 @@ export function VencemHojeTable({
   const [alterarOpen, setAlterarOpen] = useState(false);
 
   const formatCurrency = (value: number) =>
-    value.toLocaleString("pt-BR", {
+    (value ?? 0).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });
@@ -69,7 +74,27 @@ export function VencemHojeTable({
             </TableHeader>
 
             <TableBody>
-              {parcelas.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[220px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[90px]" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[120px]" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-10" />
+                        <Skeleton className="h-8 w-10" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : parcelas.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={4}
@@ -88,14 +113,10 @@ export function VencemHojeTable({
                       {parcela.cliente}
                     </TableCell>
 
-                    <TableCell>
-                      {formatCurrency(parcela.valor)}
-                    </TableCell>
+                    <TableCell>{formatCurrency(parcela.valor)}</TableCell>
 
                     <TableCell className="text-slate-600">
-                      {new Date(
-                        parcela.dataVencimento + "T00:00:00"
-                      ).toLocaleDateString("pt-BR")}
+                      {new Date(parcela.dataVencimento + "T00:00:00").toLocaleDateString("pt-BR")}
                     </TableCell>
 
                     <TableCell className="text-right">

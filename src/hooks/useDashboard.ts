@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
 import { apiClient } from "@/services/apiClient";
 import { parcelasService } from "@/services/parcelas.service";
 import type { ParcelaResponse } from "@/types";
-import {
-  mapParcelaToTable,
-  type ParcelaTable,
-} from "@/mappers/parcela.mapper";
+import { mapParcelaToTable, type ParcelaTable } from "@/mappers/parcela.mapper";
 
 type Period = "3" | "6" | "12" | "all";
 
@@ -17,10 +13,7 @@ interface Stats {
   totalAtraso: number;
 }
 
-const filterByPeriod = (
-  parcelas: ParcelaResponse[],
-  period: Period
-) => {
+const filterByPeriod = (parcelas: ParcelaResponse[], period: Period) => {
   if (period === "all") return parcelas;
 
   const now = new Date();
@@ -31,62 +24,78 @@ const filterByPeriod = (
   ).getTime();
 
   return parcelas.filter((p) => {
-    const data = new Date(p.dataVencimento).getTime();
+    const data = new Date(p.dataVencimento + "T00:00:00").getTime();
     return data >= limite;
   });
 };
 
-export function useDashboard() {
-  const location = useLocation();
+const DASHBOARD_CACHE_TTL_MS = 60_000;
+let dashboardCache:
+  | {
+      ts: number;
+      vencemHoje: ParcelaTable[];
+      atrasadas: ParcelaTable[];
+      todasParcelas: ParcelaResponse[];
+    }
+  | null = null;
 
+export function useDashboard() {
   const [period, setPeriod] = useState<Period>("6");
-  const [vencemHoje, setVencemHoje] = useState<ParcelaTable[]>([]);
-  const [atrasadas, setAtrasadas] = useState<ParcelaTable[]>([]);
-  const [todasParcelas, setTodasParcelas] = useState<ParcelaResponse[]>([]);
+
+  const [vencemHoje, setVencemHoje] = useState<ParcelaTable[]>(() => dashboardCache?.vencemHoje ?? []);
+  const [atrasadas, setAtrasadas] = useState<ParcelaTable[]>(() => dashboardCache?.atrasadas ?? []);
+  const [todasParcelas, setTodasParcelas] = useState<ParcelaResponse[]>(() => dashboardCache?.todasParcelas ?? []);
+
   const [loading, setLoading] = useState(false);
 
   const loadBaseData = useCallback(async () => {
     setLoading(true);
 
     try {
-      const [
-        vencendo,
-        atrasado,
-        pagas,
-        pendentes,
-      ] = await Promise.all([
+      const [vencendo, atrasado, pagas, pendentes] = await Promise.all([
         parcelasService.getVencendoHoje(),
         parcelasService.getPorStatus("ATRASADO"),
         parcelasService.getPorStatus("PAGO"),
         parcelasService.getPorStatus("PENDENTE"),
       ]);
 
-      setVencemHoje(vencendo.map(mapParcelaToTable));
-      setAtrasadas(atrasado.map(mapParcelaToTable));
-      setTodasParcelas([
-        ...pagas,
-        ...pendentes,
-        ...atrasado,
-      ]);
+      const vencemHojeMapped = vencendo.map(mapParcelaToTable);
+      const atrasadasMapped = atrasado.map(mapParcelaToTable);
+      const todas = [...pagas, ...pendentes, ...atrasado];
+
+      setVencemHoje(vencemHojeMapped);
+      setAtrasadas(atrasadasMapped);
+      setTodasParcelas(todas);
+
+      dashboardCache = {
+        ts: Date.now(),
+        vencemHoje: vencemHojeMapped,
+        atrasadas: atrasadasMapped,
+        todasParcelas: todas,
+      };
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
-      setVencemHoje([]);
-      setAtrasadas([]);
-      setTodasParcelas([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadBaseData();
-  }, [location.key, loadBaseData]);
+    const now = Date.now();
+    const cacheValido =
+      dashboardCache && now - dashboardCache.ts < DASHBOARD_CACHE_TTL_MS;
+
+    if (!cacheValido) {
+      void loadBaseData();
+    }
+  }, [loadBaseData]);
+
+  const refresh = useCallback(async () => {
+    await loadBaseData();
+  }, [loadBaseData]);
 
   const stats = useMemo<Stats>(() => {
-    const parcelasFiltradas = filterByPeriod(
-      todasParcelas,
-      period
-    );
+    const parcelasFiltradas = filterByPeriod(todasParcelas, period);
 
     const totalRecebido = parcelasFiltradas
       .filter((p) => (p.valorPago ?? 0) > 0)
@@ -105,65 +114,34 @@ export function useDashboard() {
       0
     );
 
-    return {
-      totalEmprestado,
-      totalRecebido,
-      totalAberto,
-      totalAtraso,
-    };
+    return { totalEmprestado, totalRecebido, totalAberto, totalAtraso };
   }, [todasParcelas, period]);
 
   const chartData = useMemo(() => {
-    const parcelasFiltradas = filterByPeriod(
-      todasParcelas,
-      period
-    );
-
+    const parcelasFiltradas = filterByPeriod(todasParcelas, period);
     const grouped: Record<string, number> = {};
 
     parcelasFiltradas.forEach((parcela) => {
-      const mes = new Date(
-        parcela.dataVencimento
-      ).toLocaleString("pt-BR", {
+      const mes = new Date(parcela.dataVencimento + "T00:00:00").toLocaleString("pt-BR", {
         month: "short",
       });
 
-      grouped[mes] =
-        (grouped[mes] ?? 0) +
-        parcela.valorParcela;
+      grouped[mes] = (grouped[mes] ?? 0) + parcela.valorParcela;
     });
 
-    return Object.entries(grouped).map(
-      ([mes, recebido]) => ({
-        mes,
-        recebido,
-      })
-    );
+    return Object.entries(grouped).map(([mes, recebido]) => ({ mes, recebido }));
   }, [todasParcelas, period]);
 
   const handlePagar = useCallback(
-    async (
-      idEmprestimo: number,
-      numeroParcela: number,
-      valorParcela: number,
-      valorPago?: number
-    ) => {
+    async (idEmprestimo: number, numeroParcela: number, valorParcela: number, valorPago?: number) => {
       try {
         const pagamentoTotal =
-          !valorPago ||
-          Math.abs(valorPago - valorParcela) < 0.01;
+          !valorPago || Math.abs(valorPago - valorParcela) < 0.01;
 
         if (pagamentoTotal) {
-          await apiClient.post("/parcelas/pagar", {
-            idEmprestimo,
-            numeroParcela,
-          });
+          await apiClient.post("/parcelas/pagar", { idEmprestimo, numeroParcela });
         } else {
-          await apiClient.post("/parcelas/pagar-parcial", {
-            idEmprestimo,
-            numeroParcela,
-            valorPago,
-          });
+          await apiClient.post("/parcelas/pagar-parcial", { idEmprestimo, numeroParcela, valorPago });
         }
 
         await loadBaseData();
@@ -183,5 +161,6 @@ export function useDashboard() {
     chartData,
     loading,
     handlePagar,
+    refresh,
   };
 }
