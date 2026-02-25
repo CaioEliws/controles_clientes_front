@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -6,13 +7,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
+import { AlterarDataParcelaDialog } from "@/pages/Parcelas/components/AlterarDataParcelaDialog";
+
+import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
+import { AlterarDataParcelaButton } from "@/components/actions/AlterarDataParcelaButton";
+
 import type { ParcelaTable } from "@/mappers/parcela.mapper";
 
 interface Props {
   parcelas: ParcelaTable[];
-  onPagar: (idEmprestimo: number, numeroParcela: number) => void;
+  onRefresh: () => Promise<void>;
   page?: number;
   totalPages?: number;
   totalItems?: number;
@@ -22,114 +28,129 @@ interface Props {
 
 export function VencemHojeTable({
   parcelas,
+  onRefresh,
   page = 1,
   totalPages = 1,
   totalItems,
   onPrev,
   onNext,
-  onPagar,
 }: Props) {
-  const formatCurrency = (val: number) =>
-    val.toLocaleString("pt-BR", {
+  const [selected, setSelected] = useState<ParcelaTable | null>(null);
+  const [pagarOpen, setPagarOpen] = useState(false);
+  const [alterarOpen, setAlterarOpen] = useState(false);
+
+  const formatCurrency = (value: number) =>
+    value.toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });
 
-  const displayTotalItems = totalItems !== undefined ? totalItems : parcelas.length;
+  const displayTotalItems =
+    totalItems !== undefined ? totalItems : parcelas.length;
 
   return (
-    <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden">
-      <CardContent className="p-0">
-        <div className="px-8 py-6 border-b bg-slate-50">
-          <h3 className="text-lg font-semibold text-slate-700">
-            Vencem Hoje
-          </h3>
-        </div>
+    <>
+      <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden">
+        <CardContent className="p-0">
+          <div className="px-8 py-6 border-b bg-slate-50">
+            <h3 className="text-lg font-semibold text-slate-700">
+              Vencem Hoje
+            </h3>
+          </div>
 
-        <Table>
-          <TableHeader className="bg-slate-50">
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead className="text-right">Ação</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {parcelas.length === 0 ? (
+          <Table>
+            <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="text-center py-16 text-slate-400"
-                >
-                  Nenhuma parcela vencendo hoje.
-                </TableCell>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ) : (
-              parcelas.map((parcela) => (
-                <TableRow
-                  key={`${parcela.idEmprestimo}-${parcela.numeroParcela}`}
-                  className="hover:bg-slate-50/50"
-                >
-                  <TableCell className="font-semibold text-slate-700">
-                    {parcela.cliente}
-                  </TableCell>
+            </TableHeader>
 
-                  <TableCell>
-                    {formatCurrency(parcela.valor)}
-                  </TableCell>
-
-                  <TableCell className="text-slate-600">
-                    {new Date(parcela.dataVencimento).toLocaleDateString("pt-BR")}
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 border-slate-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all"
-                      onClick={() =>
-                        onPagar(parcela.idEmprestimo, parcela.numeroParcela)
-                      }
-                    >
-                      Marcar como Pago
-                    </Button>
+            <TableBody>
+              {parcelas.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="text-center py-16 text-slate-400"
+                  >
+                    Nenhuma parcela vencendo hoje.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
+              ) : (
+                parcelas.map((parcela) => (
+                  <TableRow
+                    key={`${parcela.idEmprestimo}-${parcela.numeroParcela}`}
+                    className="hover:bg-slate-50/50"
+                  >
+                    <TableCell className="font-semibold text-slate-700">
+                      {parcela.cliente}
+                    </TableCell>
 
-      {(onNext || onPrev || displayTotalItems > 0) && (
-        <CardFooter className="flex justify-between items-center px-8 py-4 bg-slate-50/50 border-t border-slate-100">
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-            Página {page} de {totalPages || 1} — {displayTotalItems} resultados
-          </span>
+                    <TableCell>
+                      {formatCurrency(parcela.valor)}
+                    </TableCell>
 
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              disabled={page === 1 || !onPrev} 
-              onClick={onPrev}
-            >
-              Anterior
-            </Button>
+                    <TableCell className="text-slate-600">
+                      {new Date(
+                        parcela.dataVencimento + "T00:00:00"
+                      ).toLocaleDateString("pt-BR")}
+                    </TableCell>
 
-            <Button 
-              size="sm" 
-              variant="outline" 
-              disabled={page === totalPages || !onNext} 
-              onClick={onNext}
-            >
-              Próxima
-            </Button>
-          </div>
-        </CardFooter>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <AlterarDataParcelaButton
+                          onClick={() => {
+                            setSelected(parcela);
+                            setAlterarOpen(true);
+                          }}
+                        />
+                        <PagarParcelaButton
+                          onClick={() => {
+                            setSelected(parcela);
+                            setPagarOpen(true);
+                          }}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+
+        {(onNext || onPrev || displayTotalItems > 0) && (
+          <CardFooter className="flex justify-between items-center px-8 py-4 bg-slate-50/50 border-t border-slate-100">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+              Página {page} de {totalPages} — {displayTotalItems} resultados
+            </span>
+          </CardFooter>
+        )}
+      </Card>
+
+      {selected && (
+        <>
+          <PagarParcelaDialog
+            open={pagarOpen}
+            onOpenChange={setPagarOpen}
+            idEmprestimo={selected.idEmprestimo}
+            numeroParcela={selected.numeroParcela}
+            valorParcela={selected.valor}
+            onSuccess={onRefresh}
+          />
+
+          <AlterarDataParcelaDialog
+            open={alterarOpen}
+            onOpenChange={setAlterarOpen}
+            idEmprestimo={selected.idEmprestimo}
+            numeroParcela={selected.numeroParcela}
+            dataAtual={selected.dataVencimento}
+            onSuccess={onRefresh}
+          />
+        </>
       )}
-    </Card>
+    </>
   );
 }

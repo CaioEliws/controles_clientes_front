@@ -17,8 +17,23 @@ export const parcelasService = {
       numeroParcela,
     }),
 
-  alterarData: (idEmprestimo: number, numeroParcela: number, novaData: string) =>
-    apiClient.patch("/parcelas/alterar-data", {
+  pagarParcial: (
+    idEmprestimo: number,
+    numeroParcela: number,
+    valorPago: number
+  ) =>
+    apiClient.post<void>("/parcelas/pagar-parcial", {
+      idEmprestimo,
+      numeroParcela,
+      valorPago,
+    }),
+
+  alterarData: (
+    idEmprestimo: number,
+    numeroParcela: number,
+    novaData: string
+  ) =>
+    apiClient.patch<void>("/parcelas/alterar-data", {
       idEmprestimo,
       numeroParcela,
       novaData,

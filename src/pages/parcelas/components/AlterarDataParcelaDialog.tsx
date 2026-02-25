@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAlterarDataParcela } from "@/hooks/useAlterarDataParcela";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const schema = z.object({
   novaData: z.string().min(1, "Data obrigatória"),
@@ -26,7 +26,7 @@ interface Props {
   idEmprestimo: number;
   numeroParcela: number;
   dataAtual: string;
-  onSuccess: () => void;
+  onSuccess?: () => Promise<void> | void; 
 }
 
 export function AlterarDataParcelaDialog({
@@ -38,12 +38,12 @@ export function AlterarDataParcelaDialog({
   onSuccess,
 }: Props) {
   const { alterarData, loading } = useAlterarDataParcela();
-
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -52,13 +52,27 @@ export function AlterarDataParcelaDialog({
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      reset({ novaData: dataAtual });
+    }
+  }, [open, dataAtual, reset]);
+
   const { ref: registerRef, ...restRegister } = register("novaData");
 
   const onSubmit = async (data: FormData) => {
-    await alterarData(idEmprestimo, numeroParcela, data.novaData, () => {
-      onSuccess();
+    try {
+      await alterarData(
+        idEmprestimo,
+        numeroParcela,
+        data.novaData
+      );
+
+      await onSuccess?.();
       onOpenChange(false);
-    });
+    } catch {
+      // erro já logado no hook
+    }
   };
 
   return (
@@ -87,10 +101,7 @@ export function AlterarDataParcelaDialog({
                   registerRef(el);
                   inputRef.current = el;
                 }}
-                className="
-                  text-lg font-medium pr-12
-                  [&::-webkit-calendar-picker-indicator]:opacity-0
-                "
+                className="text-lg font-medium pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0"
               />
 
               <button
@@ -98,20 +109,7 @@ export function AlterarDataParcelaDialog({
                 onClick={() => inputRef.current?.showPicker()}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 text-slate-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+                📅
               </button>
             </div>
 
@@ -123,7 +121,11 @@ export function AlterarDataParcelaDialog({
           </div>
 
           <DialogFooter className="sm:justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => onOpenChange(false)}
+            >
               Cancelar
             </Button>
 

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiClient } from "@/services/apiClient";
+import { parcelasService } from "@/services/parcelas.service";
 
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -21,7 +21,7 @@ type Props = {
   idEmprestimo: number;
   numeroParcela: number;
   valorParcela: number;
-  onSuccess: () => Promise<void>;
+  onSuccess?: () => Promise<void>;
 };
 
 const schema = z.object({
@@ -68,26 +68,38 @@ export function PagarParcelaDialog({
   const onSubmit = async (data: { valorPago: string }) => {
     const valorPago = Number(data.valorPago);
 
-    if (valorPago <= 0 || valorPago > valorParcela + 0.01) return;
+    if (valorPago <= 0 || valorMaiorQueSaldo) return;
 
     try {
+      console.log("=== DEBUG PAGAMENTO ===");
+      console.log("Emprestimo:", idEmprestimo);
+      console.log("Parcela:", numeroParcela);
+      console.log("Valor Pago:", valorPago);
+      console.log("Valor Parcela:", valorParcela);
+      console.log("Pagamento total?", pagamentoTotal);
+
       if (pagamentoTotal) {
-        await apiClient.post("/parcelas/pagar", {
-          idEmprestimo,
-          numeroParcela,
-        });
+        await parcelasService.pagar(idEmprestimo, numeroParcela);
       } else {
-        await apiClient.post("/parcelas/pagar-parcial", {
+        await parcelasService.pagarParcial(
           idEmprestimo,
           numeroParcela,
-          valorPago,
-        });
+          valorPago
+        );
       }
 
-      await onSuccess();
+      if (onSuccess) {
+        await onSuccess();
+      }
       onOpenChange(false);
-    } catch (err) {
-      console.error("Erro ao pagar parcela:", err);
+    } catch (err: unknown) {
+      console.error("Erro completo:", err);
+
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert("Erro inesperado ao pagar parcela.");
+      }
     }
   };
 
@@ -140,7 +152,11 @@ export function PagarParcelaDialog({
           </div>
 
           <DialogFooter className="sm:justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => onOpenChange(false)}
+            >
               Cancelar
             </Button>
 

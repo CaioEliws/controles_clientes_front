@@ -8,15 +8,19 @@ export function useAlterarDataParcela() {
     async (
       idEmprestimo: number,
       numeroParcela: number,
-      novaData: string,
-      onSuccess?: () => void
+      novaData: string
     ) => {
       try {
         setLoading(true);
-        await parcelasService.alterarData(idEmprestimo, numeroParcela, novaData);
-        onSuccess?.();
+
+        await parcelasService.alterarData(
+          idEmprestimo,
+          numeroParcela,
+          novaData
+        );
       } catch (error) {
         console.error("Erro ao alterar data:", error);
+        throw error;
       } finally {
         setLoading(false);
       }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { apiClient } from "@/services/apiClient";
 import { parcelasService } from "@/services/parcelas.service";
 import type { ParcelaResponse } from "@/types";
 import {
@@ -77,7 +78,6 @@ export function useDashboard() {
     }
   }, []);
 
-  // 🔥 Recarrega sempre que entrar na rota
   useEffect(() => {
     void loadBaseData();
   }, [location.key, loadBaseData]);
@@ -100,7 +100,6 @@ export function useDashboard() {
       .filter((p) => p.status === "ATRASADO")
       .reduce((acc, p) => acc + p.valorParcela, 0);
 
-    // 🔥 Agora calculamos no frontend
     const totalEmprestado = parcelasFiltradas.reduce(
       (acc, p) => acc + p.valorParcela,
       0
@@ -143,12 +142,30 @@ export function useDashboard() {
   }, [todasParcelas, period]);
 
   const handlePagar = useCallback(
-    async (idEmprestimo: number, numeroParcela: number) => {
+    async (
+      idEmprestimo: number,
+      numeroParcela: number,
+      valorParcela: number,
+      valorPago?: number
+    ) => {
       try {
-        await parcelasService.pagar(
-          idEmprestimo,
-          numeroParcela
-        );
+        const pagamentoTotal =
+          !valorPago ||
+          Math.abs(valorPago - valorParcela) < 0.01;
+
+        if (pagamentoTotal) {
+          await apiClient.post("/parcelas/pagar", {
+            idEmprestimo,
+            numeroParcela,
+          });
+        } else {
+          await apiClient.post("/parcelas/pagar-parcial", {
+            idEmprestimo,
+            numeroParcela,
+            valorPago,
+          });
+        }
+
         await loadBaseData();
       } catch (error) {
         console.error("Erro ao pagar parcela:", error);
