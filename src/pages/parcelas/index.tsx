@@ -9,6 +9,7 @@ import { ParcelasPagination } from "@/pages/Parcelas/components/ParcelasPaginati
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
 import { AlterarDataParcelaDialog } from "@/pages/Parcelas/components/AlterarDataParcelaDialog";
 import type { StatusParcela, ParcelaResponse } from "@/types";
+import { ParcelasSkeleton } from "@/pages/Parcelas/components/ParcelasSkeleton";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -23,7 +24,6 @@ export function Parcelas() {
   const { parcelas, loading, fetchParcelas } = useParcelas();
   const [searchParams] = useSearchParams();
 
-  // ✅ pegar query params
   const clienteParam = searchParams.get("cliente");
   const emprestimoIdParam = searchParams.get("emprestimoId");
   const emprestimoId = emprestimoIdParam
@@ -43,7 +43,6 @@ export function Parcelas() {
   const [selectedMonth, setSelectedMonth] = useState<number | "ALL">("ALL");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  // ✅ Filtro automático por empréstimo
   const parcelasBase = useMemo(() => {
     if (!emprestimoId) return parcelas;
     return parcelas.filter(
@@ -90,7 +89,7 @@ export function Parcelas() {
 
   const { filtradas, totalAtrasadas, vencendoEstaSemana } =
     useParcelasFiltradas({
-      parcelas: parcelasBase, // ✅ aqui usamos parcelas já filtradas pelo empréstimo
+      parcelas: parcelasBase,
       search,
       selectedClients,
       selectedStatuses,
@@ -108,74 +107,79 @@ export function Parcelas() {
   return (
     <div className="flex min-h-screen bg-slate-50/50">
       <main className="flex-1 p-8 space-y-8">
+        {loading ? (
+          <ParcelasSkeleton />
+        ) : (
+          <>
+            <ParcelasHeader
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              hasFilters={
+                !!search ||
+                selectedClients.length > 0 ||
+                selectedStatuses.length > 0 ||
+                selectedMonth !== "ALL"
+              }
+              onClearFilters={() => {
+                setSearch("");
+                setSelectedClients([]);
+                setSelectedStatuses([]);
+                setSelectedMonth("ALL");
+                setSortOrder("asc");
+                setPage(1);
+              }}
+            />
 
-        <ParcelasHeader
-          search={search}
-          onSearchChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          hasFilters={
-            !!search ||
-            selectedClients.length > 0 ||
-            selectedStatuses.length > 0 ||
-            selectedMonth !== "ALL"
-          }
-          onClearFilters={() => {
-            setSearch("");
-            setSelectedClients([]);
-            setSelectedStatuses([]);
-            setSelectedMonth("ALL");
-            setSortOrder("asc");
-            setPage(1);
-          }}
-        />
+            <ParcelasStats
+              total={filtradas.length}
+              atrasadas={totalAtrasadas}
+              vencendoSemana={vencendoEstaSemana}
+            />
 
-        <ParcelasStats
-          total={filtradas.length}
-          atrasadas={totalAtrasadas}
-          vencendoSemana={vencendoEstaSemana}
-        />
+            <ParcelasTable
+              loading={loading}
+              parcelas={paginated}
+              uniqueClients={uniqueClients}
+              selectedClients={selectedClients}
+              selectedStatuses={selectedStatuses}
+              selectedMonth={selectedMonth}
+              toggleClient={toggleClient}
+              toggleStatus={toggleStatus}
+              setSelectedMonth={(value) => {
+                setSelectedMonth(value);
+                setPage(1);
+              }}
+              setSortOrder={(value) => {
+                setSortOrder(value);
+                setPage(1);
+              }}
+              onPagar={(p) => {
+                setSelected({
+                  idEmprestimo: p.idEmprestimo,
+                  numeroParcela: p.numeroParcela,
+                  valorRestante: p.valorRestante,
+                  dataVencimento: "",
+                });
+                setDialogOpen(true);
+              }}
+              onAlterarData={(parcela) => {
+                setSelected(mapParcelaToSelecionada(parcela));
+                setAlterarDialogOpen(true);
+              }}
+            />
 
-        <ParcelasTable
-          loading={loading}
-          parcelas={paginated}
-          uniqueClients={uniqueClients}
-          selectedClients={selectedClients}
-          selectedStatuses={selectedStatuses}
-          selectedMonth={selectedMonth}
-          toggleClient={toggleClient}
-          toggleStatus={toggleStatus}
-          setSelectedMonth={(value) => {
-            setSelectedMonth(value);
-            setPage(1);
-          }}
-          setSortOrder={(value) => {
-            setSortOrder(value);
-            setPage(1);
-          }}
-          onPagar={(p) => {
-            setSelected({
-              idEmprestimo: p.idEmprestimo,
-              numeroParcela: p.numeroParcela,
-              valorRestante: p.valorRestante,
-              dataVencimento: "",
-            });
-            setDialogOpen(true);
-          }}
-          onAlterarData={(parcela) => {
-            setSelected(mapParcelaToSelecionada(parcela));
-            setAlterarDialogOpen(true);
-          }}
-        />
-
-        <ParcelasPagination
-          page={page}
-          totalPages={totalPages}
-          totalItems={filtradas.length}
-          onPrev={() => setPage((p) => p - 1)}
-          onNext={() => setPage((p) => p + 1)}
-        />
+            <ParcelasPagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={filtradas.length}
+              onPrev={() => setPage((p) => p - 1)}
+              onNext={() => setPage((p) => p + 1)}
+            />
+          </>
+        )}
       </main>
 
       {selected && (

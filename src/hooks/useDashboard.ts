@@ -3,6 +3,7 @@ import { apiClient } from "@/services/apiClient";
 import { parcelasService } from "@/services/parcelas.service";
 import type { ParcelaResponse } from "@/types";
 import { mapParcelaToTable, type ParcelaTable } from "@/mappers/parcela.mapper";
+import { parseDateISOorBR } from "@/utils/date";
 
 type Period = "3" | "6" | "12" | "all";
 
@@ -24,8 +25,9 @@ const filterByPeriod = (parcelas: ParcelaResponse[], period: Period) => {
   ).getTime();
 
   return parcelas.filter((p) => {
-    const data = new Date(p.dataVencimento + "T00:00:00").getTime();
-    return data >= limite;
+    const dt = parseDateISOorBR(p.dataVencimento);
+    if (!dt) return false;
+    return dt.getTime() >= limite;
   });
 };
 
@@ -117,19 +119,40 @@ export function useDashboard() {
     return { totalEmprestado, totalRecebido, totalAberto, totalAtraso };
   }, [todasParcelas, period]);
 
-  const chartData = useMemo(() => {
+    const chartData = useMemo(() => {
     const parcelasFiltradas = filterByPeriod(todasParcelas, period);
-    const grouped: Record<string, number> = {};
 
-    parcelasFiltradas.forEach((parcela) => {
-      const mes = new Date(parcela.dataVencimento + "T00:00:00").toLocaleString("pt-BR", {
-        month: "short",
+    const grouped = new Map<string, number>();
+
+    for (const p of parcelasFiltradas) {
+      const d = new Date(p.dataVencimento + "T00:00:00");
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const key = `${year}-${String(month).padStart(2, "0")}`;
+
+      grouped.set(key, (grouped.get(key) ?? 0) + p.valorParcela);
+    }
+
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, recebido]) => {
+        const [yy, mm] = key.split("-");
+        const date = new Date(Number(yy), Number(mm) - 1, 1);
+
+        const mesShort = date
+          .toLocaleString("pt-BR", { month: "short" })
+          .replace(".", ""); // remove ponto do "set."
+
+        const year = date.getFullYear();
+        const yearShort = String(year).slice(-2);
+
+        return {
+          key, 
+          year,
+          label: `${mesShort}/${yearShort}`,
+          recebido,
+        };
       });
-
-      grouped[mes] = (grouped[mes] ?? 0) + parcela.valorParcela;
-    });
-
-    return Object.entries(grouped).map(([mes, recebido]) => ({ mes, recebido }));
   }, [todasParcelas, period]);
 
   const handlePagar = useCallback(
