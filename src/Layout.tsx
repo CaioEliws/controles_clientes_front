@@ -1,16 +1,25 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "@/components/SideBar";
-import { RxDashboard } from "react-icons/rx";
-import { FiCalendar, FiDollarSign, FiUsers } from "react-icons/fi";
+import {
+  RxDashboard,
+} from "react-icons/rx";
+
+import {
+  FiUsers,
+  FiLayers,
+  FiTrendingUp,
+  FiBarChart2,
+  FiDownloadCloud,
+} from "react-icons/fi";
 
 export function Layout() {
   const menuItems = [
     { label: "Dashboard", path: "/", icon: <RxDashboard /> },
     { label: "Clientes", path: "/clientes", icon: <FiUsers /> },
-    { label: "Parcelas", path: "/parcelas", icon: <FiCalendar /> },
-    { label: "Emprestimo", path: "/emprestimo", icon: <FiDollarSign /> },
-    { label: "Simulação", path: "/simulacao", icon: <FiDollarSign /> },
-    { label: "Backup / Import", path: "/backup", icon: <FiDollarSign /> },
+    { label: "Parcelas", path: "/parcelas", icon: <FiLayers /> },
+    { label: "Empréstimo", path: "/emprestimo", icon: <FiTrendingUp /> },
+    { label: "Simulação", path: "/simulacao", icon: <FiBarChart2 /> },
+    { label: "Backup / Import", path: "/backup", icon: <FiDownloadCloud /> },
   ];
 
   return (

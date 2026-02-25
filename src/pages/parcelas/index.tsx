@@ -22,7 +22,13 @@ type ParcelaSelecionada = {
 export function Parcelas() {
   const { parcelas, loading, fetchParcelas } = useParcelas();
   const [searchParams] = useSearchParams();
+
+  // ✅ pegar query params
   const clienteParam = searchParams.get("cliente");
+  const emprestimoIdParam = searchParams.get("emprestimoId");
+  const emprestimoId = emprestimoIdParam
+    ? Number(emprestimoIdParam)
+    : null;
 
   const [selected, setSelected] = useState<ParcelaSelecionada | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -37,7 +43,17 @@ export function Parcelas() {
   const [selectedMonth, setSelectedMonth] = useState<number | "ALL">("ALL");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const mapParcelaToSelecionada = (p: ParcelaResponse): ParcelaSelecionada => ({
+  // ✅ Filtro automático por empréstimo
+  const parcelasBase = useMemo(() => {
+    if (!emprestimoId) return parcelas;
+    return parcelas.filter(
+      (p) => p.idEmprestimo === emprestimoId
+    );
+  }, [parcelas, emprestimoId]);
+
+  const mapParcelaToSelecionada = (
+    p: ParcelaResponse
+  ): ParcelaSelecionada => ({
     idEmprestimo: p.idEmprestimo,
     numeroParcela: p.numeroParcela,
     valorRestante: p.valorParcela - (p.valorPago || 0),
@@ -46,32 +62,44 @@ export function Parcelas() {
 
   const toggleClient = (client: string) => {
     setSelectedClients((prev) =>
-      prev.includes(client) ? prev.filter((c) => c !== client) : [...prev, client]
+      prev.includes(client)
+        ? prev.filter((c) => c !== client)
+        : [...prev, client]
     );
     setPage(1);
   };
 
   const toggleStatus = (status: StatusParcela) => {
     setSelectedStatuses((prev) =>
-      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status]
     );
     setPage(1);
   };
 
   const uniqueClients = useMemo(() => {
-    return [...new Set(parcelas.map(p => p.nomeCliente).filter((nome): nome is string => Boolean(nome)))];
-  }, [parcelas]);
+    return [
+      ...new Set(
+        parcelasBase
+          .map((p) => p.nomeCliente)
+          .filter((nome): nome is string => Boolean(nome))
+      ),
+    ];
+  }, [parcelasBase]);
 
-  const { filtradas, totalAtrasadas, vencendoEstaSemana } = useParcelasFiltradas({
-    parcelas,
-    search,
-    selectedClients,
-    selectedStatuses,
-    selectedMonth,
-    sortOrder,
-  });
+  const { filtradas, totalAtrasadas, vencendoEstaSemana } =
+    useParcelasFiltradas({
+      parcelas: parcelasBase, // ✅ aqui usamos parcelas já filtradas pelo empréstimo
+      search,
+      selectedClients,
+      selectedStatuses,
+      selectedMonth,
+      sortOrder,
+    });
 
   const totalPages = Math.ceil(filtradas.length / ITEMS_PER_PAGE);
+
   const paginated = filtradas.slice(
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE
@@ -80,7 +108,7 @@ export function Parcelas() {
   return (
     <div className="flex min-h-screen bg-slate-50/50">
       <main className="flex-1 p-8 space-y-8">
-        
+
         <ParcelasHeader
           search={search}
           onSearchChange={(value) => {
@@ -131,7 +159,7 @@ export function Parcelas() {
               idEmprestimo: p.idEmprestimo,
               numeroParcela: p.numeroParcela,
               valorRestante: p.valorRestante,
-              dataVencimento: ""
+              dataVencimento: "",
             });
             setDialogOpen(true);
           }}

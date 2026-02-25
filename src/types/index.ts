@@ -1,3 +1,5 @@
+export type EmprestimoStatus = "EM_ABERTO" | "QUITADO";
+
 export interface Cliente {
   id: number;
   nome: string;
@@ -23,6 +25,32 @@ export interface Emprestimo {
   valorEmprestado: number;
   valorRecebido: number;
   valorAReceber: number;
+}
+
+export interface EmprestimoDetalhado {
+  id: number;
+  nomeCliente: string;
+
+  dataEmprestimo: string;
+
+  formaPagamento: string;
+
+  valorEmprestado: number;
+  valorTotalEmprestimo: number;
+  valorParcela: number;
+  valorRecebido: number;
+  valorAReceber: number;
+
+  inicioPagamento: string;
+  finalPagamento: string;
+
+  status: EmprestimoStatus | string;
+
+  quantidadeParcelas: number;
+
+  parcelasPagas: number;
+  parcelasPendentes: number;
+  parcelasAtrasadas: number;
 }
 
 export type StatusParcela =
