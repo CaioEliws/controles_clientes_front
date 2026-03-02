@@ -59,10 +59,10 @@ export function useParcelasFiltradas({
       const dateB = new Date(b.dataVencimento + "T00:00:00").getTime();
 
       if (sortOrder === "desc") {
-        return dateB - dateA; // MAIS RECENTES PRIMEIRO
+        return dateB - dateA;
       }
 
-      return dateA - dateB; // MAIS ANTIGOS PRIMEIRO
+      return dateA - dateB;
     });
 
     return result;

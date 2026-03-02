@@ -1,12 +1,15 @@
 import { apiClient } from "./apiClient";
 import type { EmprestimoDetalhado, ParcelaResponse } from "@/types";
 
-export interface CriarEmprestimoDTO {
+export type FrequenciaPagamento = "DIARIO" | "SEMANAL" | "MENSAL";
+
+export type CriarEmprestimoDTO = {
   valorEmprestado: number;
   quantidadeParcelas: number;
   jurosCobrado: number;
   formaPagamento: string;
-}
+  frequenciaPagamento: FrequenciaPagamento;
+};
 
 export const emprestimosService = {
   getByCliente: (clienteId: number) =>

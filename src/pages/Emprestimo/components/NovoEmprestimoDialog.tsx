@@ -40,6 +40,14 @@ export function NovoEmprestimoDialog({
       shouldValidate: true,
       shouldDirty: true,
     });
+
+    const current = form.getValues("frequenciaPagamento");
+    if (!current) {
+      form.setValue("frequenciaPagamento", "MENSAL", {
+        shouldValidate: true,
+        shouldDirty: false,
+      });
+    }
   }, [open, selectedClienteId, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -119,6 +127,22 @@ export function NovoEmprestimoDialog({
                 <option value="PIX">PIX</option>
                 <option value="DINHEIRO">DINHEIRO</option>
               </select>
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label className="text-sm">Frequência de pagamento</Label>
+              <select
+                {...form.register("frequenciaPagamento")}
+                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400"
+                defaultValue="MENSAL"
+              >
+                <option value="MENSAL">Mensal</option>
+                <option value="SEMANAL">Semanal</option>
+                <option value="DIARIO">Diário</option>
+              </select>
+              <p className="text-xs text-slate-500">
+                Diário gera parcelas todos os dias, pulando domingos.
+              </p>
             </div>
           </div>
 

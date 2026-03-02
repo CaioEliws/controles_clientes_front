@@ -42,7 +42,7 @@ let dashboardCache:
   | null = null;
 
 export function useDashboard() {
-  const [period, setPeriod] = useState<Period>("6");
+  const [period, setPeriod] = useState<Period>("all");
 
   const [vencemHoje, setVencemHoje] = useState<ParcelaTable[]>(() => dashboardCache?.vencemHoje ?? []);
   const [atrasadas, setAtrasadas] = useState<ParcelaTable[]>(() => dashboardCache?.atrasadas ?? []);
@@ -141,7 +141,7 @@ export function useDashboard() {
 
         const mesShort = date
           .toLocaleString("pt-BR", { month: "short" })
-          .replace(".", ""); // remove ponto do "set."
+          .replace(".", "");
 
         const year = date.getFullYear();
         const yearShort = String(year).slice(-2);

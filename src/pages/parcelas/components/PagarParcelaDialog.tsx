@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,8 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { formatCurrency, parseCurrency } from "@/utils/format";
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -24,12 +26,15 @@ type Props = {
   onSuccess?: () => Promise<void>;
 };
 
-const schema = z.object({
+const baseSchema = z.object({
   valorPago: z
     .string()
+    .trim()
     .min(1, "Informe um valor")
-    .refine((v) => Number(v) > 0, "O valor deve ser maior que zero"),
+    .refine((v) => parseCurrency(v) > 0, "O valor deve ser maior que zero"),
 });
+
+type FormData = z.infer<typeof baseSchema>;
 
 export function PagarParcelaDialog({
   open,
@@ -39,10 +44,26 @@ export function PagarParcelaDialog({
   valorParcela,
   onSuccess,
 }: Props) {
-  const form = useForm({
-    resolver: zodResolver(schema),
+  const resolver = useMemo(() => {
+    const schema = baseSchema.superRefine((data, ctx) => {
+      const pago = parseCurrency(data.valorPago);
+      if (pago > valorParcela + 0.01) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["valorPago"],
+          message: "Valor excede o saldo!",
+        });
+      }
+    });
+
+    return zodResolver(schema);
+  }, [valorParcela]);
+
+  const form = useForm<FormData>({
+    resolver,
+    mode: "onChange",
     defaultValues: {
-      valorPago: String(valorParcela),
+      valorPago: formatCurrency(valorParcela),
     },
   });
 
@@ -50,56 +71,50 @@ export function PagarParcelaDialog({
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    setValue,
+    formState: { errors, isSubmitting, isValid },
     control,
   } = form;
 
-  const valorDigitado = Number(useWatch({ control, name: "valorPago" }) || "0");
-
-  useEffect(() => {
-    if (open) {
-      reset({ valorPago: String(valorParcela) });
-    }
-  }, [open, valorParcela, reset]);
+  const valorPagoRaw = useWatch({ control, name: "valorPago" }) ?? "";
+  const valorDigitado = parseCurrency(valorPagoRaw);
 
   const pagamentoTotal = Math.abs(valorDigitado - valorParcela) < 0.01;
-  const valorMaiorQueSaldo = valorDigitado > valorParcela + 0.01;
 
-  const onSubmit = async (data: { valorPago: string }) => {
-    const valorPago = Number(data.valorPago);
+  useEffect(() => {
+    if (open) reset({ valorPago: formatCurrency(valorParcela) });
+  }, [open, valorParcela, reset]);
 
-    if (valorPago <= 0 || valorMaiorQueSaldo) return;
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+
+    if (raw.trim() === "") {
+      setValue("valorPago", "", { shouldValidate: true, shouldDirty: true });
+      return;
+    }
+
+    const n = parseCurrency(raw);
+    setValue("valorPago", formatCurrency(n), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  const onSubmit = async (data: FormData) => {
+    const valorPago = parseCurrency(data.valorPago);
 
     try {
-      console.log("=== DEBUG PAGAMENTO ===");
-      console.log("Emprestimo:", idEmprestimo);
-      console.log("Parcela:", numeroParcela);
-      console.log("Valor Pago:", valorPago);
-      console.log("Valor Parcela:", valorParcela);
-      console.log("Pagamento total?", pagamentoTotal);
-
       if (pagamentoTotal) {
         await parcelasService.pagar(idEmprestimo, numeroParcela);
       } else {
-        await parcelasService.pagarParcial(
-          idEmprestimo,
-          numeroParcela,
-          valorPago
-        );
+        await parcelasService.pagarParcial(idEmprestimo, numeroParcela, valorPago);
       }
 
-      if (onSuccess) {
-        await onSuccess();
-      }
+      if (onSuccess) await onSuccess();
       onOpenChange(false);
     } catch (err: unknown) {
-      console.error("Erro completo:", err);
-
-      if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert("Erro inesperado ao pagar parcela.");
-      }
+      if (err instanceof Error) alert(err.message);
+      else alert("Erro inesperado ao pagar parcela.");
     }
   };
 
@@ -119,10 +134,7 @@ export function PagarParcelaDialog({
               Saldo Devedor
             </p>
             <p className="text-2xl font-black text-slate-900">
-              {valorParcela.toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              })}
+              {formatCurrency(valorParcela)}
             </p>
           </div>
 
@@ -132,9 +144,10 @@ export function PagarParcelaDialog({
             </label>
 
             <Input
-              type="number"
-              step="0.01"
+              inputMode="decimal"
+              placeholder="R$ 0,00"
               {...register("valorPago")}
+              onChange={handleCurrencyChange}
               className="text-lg font-bold"
             />
 
@@ -143,31 +156,14 @@ export function PagarParcelaDialog({
                 {errors.valorPago.message}
               </p>
             )}
-
-            {valorMaiorQueSaldo && (
-              <p className="text-xs text-red-600 font-bold">
-                Valor excede o saldo!
-              </p>
-            )}
           </div>
 
           <DialogFooter className="sm:justify-end gap-2">
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
 
-            <Button
-              type="submit"
-              disabled={
-                isSubmitting ||
-                valorDigitado <= 0 ||
-                valorMaiorQueSaldo
-              }
-            >
+            <Button type="submit" disabled={isSubmitting || !isValid}>
               {isSubmitting ? "Processando..." : "Confirmar Pagamento"}
             </Button>
           </DialogFooter>

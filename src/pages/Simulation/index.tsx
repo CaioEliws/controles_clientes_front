@@ -29,7 +29,6 @@ export function SimulacaoEmprestimo() {
 
           <CardContent className="space-y-6">
 
-            {/* CAMPOS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
               <div className="space-y-1">
@@ -73,7 +72,6 @@ export function SimulacaoEmprestimo() {
             {simulacao && (
               <div className="space-y-6">
 
-                {/* RESUMO */}
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 space-y-3 shadow-sm">
 
                   <div className="flex justify-between">
@@ -99,7 +97,6 @@ export function SimulacaoEmprestimo() {
 
                 </div>
 
-                {/* TABELA */}
                 <div className="max-h-64 overflow-y-auto border rounded-xl">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-100">

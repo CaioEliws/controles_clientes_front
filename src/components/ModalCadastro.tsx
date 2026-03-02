@@ -14,23 +14,11 @@ import { Label } from "@/components/ui/label";
 import { FiUserPlus } from "react-icons/fi";
 import { env } from "@/config/env";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { clienteCreateSchema, type ClienteCreateForm } from "@/schemas/clientes.schemas";
+
 const API = env.API_URL;
-
-const schema = z.object({
-  nome: z.string().min(3, "Nome obrigatório"),
-  nomeIndicador: z.string().optional(),
-  enderecoRua: z.string().min(1, "Rua obrigatória"),
-  enderecoBairro: z.string().min(1, "Bairro obrigatório"),
-  enderecoNumero: z
-    .string()
-    .min(1, "Número obrigatório")
-    .refine((val) => Number(val) > 0, "Número inválido"),
-});
-
-type FormData = z.infer<typeof schema>;
 
 interface ModalCadastroProps {
   onSuccess: () => void;
@@ -43,9 +31,10 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
+    formState: { errors, isSubmitting, isValid },
+  } = useForm<ClienteCreateForm>({
+    resolver: zodResolver(clienteCreateSchema),
+    mode: "onChange",
     defaultValues: {
       nome: "",
       nomeIndicador: "",
@@ -55,9 +44,10 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: ClienteCreateForm) => {
     const payload = {
       ...data,
+      nomeIndicador: data.nomeIndicador?.trim() ? data.nomeIndicador.trim() : null,
       enderecoNumero: Number(data.enderecoNumero),
     };
 
@@ -97,14 +87,12 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome Completo</Label>
             <Input id="nome" {...register("nome")} placeholder="Ex: João Silva" />
-            {errors.nome && (
-              <p className="text-red-600 text-xs font-medium">{errors.nome.message}</p>
-            )}
+            {errors.nome && <p className="text-red-600 text-xs font-medium">{errors.nome.message}</p>}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="indicador">Quem indicou?</Label>
-            <Input id="indicador" {...register("nomeIndicador")} placeholder="Nome do indicador" />
+            <Input id="indicador" {...register("nomeIndicador")} placeholder="Nome do indicador (opcional)" />
             {errors.nomeIndicador && (
               <p className="text-red-600 text-xs font-medium">{errors.nomeIndicador.message}</p>
             )}
@@ -121,7 +109,7 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
 
             <div className="grid gap-2 flex-[1]">
               <Label htmlFor="numero">Nº</Label>
-              <Input id="numero" type="number" {...register("enderecoNumero")} placeholder="Ex: 441" />
+              <Input id="numero" inputMode="numeric" {...register("enderecoNumero")} placeholder="Ex: 441" />
               {errors.enderecoNumero && (
                 <p className="text-red-600 text-xs font-medium">{errors.enderecoNumero.message}</p>
               )}
@@ -137,7 +125,7 @@ export function ModalCadastro({ onSuccess }: ModalCadastroProps) {
           </div>
 
           <DialogFooter>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || !isValid}>
               {isSubmitting ? "Salvando..." : "Salvar Cliente"}
             </Button>
           </DialogFooter>
