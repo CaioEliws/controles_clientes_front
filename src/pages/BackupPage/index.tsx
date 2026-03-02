@@ -56,27 +56,37 @@ export function BackupPage() {
       setExporting(true);
       setMessage(null);
 
-      const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+      const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
       const resp = await fetch(`${API_URL}/export`, {
         method: "GET",
         credentials: "include",
         headers: {
-          Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          Accept:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         },
       });
 
       if (!resp.ok) {
         const txt = await resp.text().catch(() => "");
-        throw new Error(`Falha ao exportar (${resp.status}). ${txt.slice(0, 200)}`);
+        throw new Error(
+          `Falha ao exportar (${resp.status}). ${txt.slice(0, 200)}`
+        );
       }
 
       const contentType = resp.headers.get("content-type") || "";
 
-      if (!contentType.includes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
+      if (
+        !contentType.includes(
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+      ) {
         const txt = await resp.text().catch(() => "");
         throw new Error(
-          `Resposta não é XLSX (content-type: ${contentType}). Início: ${txt.slice(0, 200)}`
+          `Resposta não é XLSX (content-type: ${contentType}). Início: ${txt.slice(
+            0,
+            200
+          )}`
         );
       }
 

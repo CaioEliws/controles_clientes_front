@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { emprestimosService } from "@/services/emprestimos.service";
 import { clientesService } from "@/services/clientes.service";
 import type { Cliente, EmprestimoDetalhado } from "@/types";
-
 import { z } from "zod";
 
 const safeSearchRegex = /^[\p{L}\p{N}\s.'()-]*$/u;
@@ -12,6 +11,16 @@ const clienteSearchSchema = z
   .string()
   .max(60, "Pesquisa muito longa (máx 60 caracteres).")
   .refine((s) => safeSearchRegex.test(s), "Use apenas letras/números e (.,'()-).");
+
+const normalize = (s?: string | null) =>
+  (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+
+const safeLower = (s?: string | null) => (s ?? "").trim().toLowerCase();
+
+const safeDateMs = (s: string): number => {
+  const ms = new Date(s).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+};
 
 export function useEmprestimosPage() {
   const [emprestimos, setEmprestimos] = useState<EmprestimoDetalhado[]>([]);
@@ -25,16 +34,21 @@ export function useEmprestimosPage() {
   const [clientSearchError, setClientSearchError] = useState<string | null>(null);
 
   const debounceRef = useRef<number | null>(null);
-
   const navigate = useNavigate();
 
   useEffect(() => {
     let alive = true;
 
-    clientesService.getAll().then((data) => {
-      if (!alive) return;
-      setClientes(data);
-    });
+    clientesService
+      .getAll()
+      .then((data) => {
+        if (!alive) return;
+        setClientes(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setClientes([]);
+      });
 
     return () => {
       alive = false;
@@ -45,7 +59,7 @@ export function useEmprestimosPage() {
     setLoading(true);
     try {
       const data = await emprestimosService.getByCliente(clienteId);
-      setEmprestimos(data);
+      setEmprestimos(Array.isArray(data) ? data : []);
     } catch {
       setEmprestimos([]);
     } finally {
@@ -70,7 +84,7 @@ export function useEmprestimosPage() {
 
   const selectCliente = useCallback(
     (cliente: Cliente) => {
-      setClientSearch(cliente.nome);
+      setClientSearch(cliente.nome ?? "");
       setClientSearchError(null);
       handleSelectCliente(cliente.id);
     },
@@ -78,38 +92,33 @@ export function useEmprestimosPage() {
   );
 
   const clientesFiltrados = useMemo(() => {
-    const termo = clientSearch.trim().toLowerCase();
+    const termo = safeLower(clientSearch);
 
     const lista = termo
-      ? clientes.filter((c) =>
-          c.nome.toLowerCase().includes(termo)
-        )
+      ? clientes.filter((c) => safeLower(c.nome).includes(termo))
       : clientes;
 
     return [...lista].sort((a, b) =>
-      a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" })
+      (a.nome ?? "").localeCompare((b.nome ?? ""), "pt-BR", { sensitivity: "base" })
     );
   }, [clientes, clientSearch]);
 
   const suggestions = useMemo(() => {
-  const termo = clientSearch.trim().toLowerCase();
-  if (!termo) return [];
+    const termo = safeLower(clientSearch);
+    if (!termo) return [];
 
-  const normalize = (s: string) =>
-    s.trim().toLowerCase().replace(/\s+/g, " ");
+    const termoNorm = normalize(termo);
 
-  const termoNorm = normalize(termo);
-
-  return clientes
-    .filter((c) => normalize(c.nome).includes(termoNorm))
-    .slice(0, 8);
-}, [clientes, clientSearch]);
-
+    return clientes
+      .filter((c) => normalize(c.nome).includes(termoNorm))
+      .slice(0, 8);
+  }, [clientes, clientSearch]);
 
   const emprestimosView = useMemo(() => {
+    // Obs: mantive sua lógica original, só tornando estável com datas inválidas
     const sorted = [...emprestimos].sort((a, b) => {
-      const da = new Date(a.dataEmprestimo).getTime();
-      const db = new Date(b.dataEmprestimo).getTime();
+      const da = safeDateMs(a.dataEmprestimo);
+      const db = safeDateMs(b.dataEmprestimo);
       return sortOrder === "asc" ? db - da : da - db;
     });
 
@@ -117,11 +126,11 @@ export function useEmprestimosPage() {
   }, [emprestimos, sortOrder]);
 
   const emprestimosFiltrados = useMemo(() => {
-    const termo = clientSearch.trim().toLowerCase();
+    const termo = safeLower(clientSearch);
     if (!termo) return emprestimosView;
 
     return emprestimosView.filter((e) =>
-      (e.nomeCliente ?? "").toLowerCase().includes(termo)
+      safeLower(e.nomeCliente).includes(termo)
     );
   }, [emprestimosView, clientSearch]);
 
@@ -146,10 +155,9 @@ export function useEmprestimosPage() {
 
   const tryAutoSelect = useCallback(
     (value: string) => {
-      const termo = value.trim().toLowerCase();
+      const termo = safeLower(value);
       if (!termo) return;
 
-      const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
       const termoNorm = normalize(termo);
 
       const exact = clientes.find((c) => normalize(c.nome) === termoNorm);
@@ -190,16 +198,13 @@ export function useEmprestimosPage() {
   const clearSearch = useCallback(() => {
     setClientSearch("");
     setClientSearchError(null);
-
     setSelectedCliente(null);
-
     setEmprestimos([]);
-
     setLoading(false);
   }, []);
 
   return {
-    clientes, 
+    clientes,
     clientesFiltrados,
 
     emprestimos: emprestimosFiltrados,

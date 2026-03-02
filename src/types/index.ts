@@ -60,11 +60,11 @@ export type StatusParcela =
   | "PARCIAL";
 
 export interface ParcelaResponse {
-  numeroParcela: number;
-  valorParcela: number;
-  valorPago?: number;
-  status: StatusParcela;
-  dataVencimento: string;
   idEmprestimo: number;
-  nomeCliente?: string;
+  numeroParcela: number;
+  nomeCliente: string;
+  valorParcela: number | string | null;
+  valorPago?: number | string | null;
+  dataVencimento: string | Date | null;
+  status: StatusParcela;
 }

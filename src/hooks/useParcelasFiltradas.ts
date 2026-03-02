@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { ParcelaResponse, StatusParcela } from "@/types";
+import { safeDate } from "@/utils/normalize";
 
 export const MESES = [
   "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -28,41 +29,36 @@ export function useParcelasFiltradas({
     let result = [...parcelas];
 
     if (search) {
-      result = result.filter(p =>
-        p.nomeCliente?.toLowerCase().includes(search.toLowerCase())
-      );
+      const s = search.toLowerCase();
+      result = result.filter(p => p.nomeCliente?.toLowerCase().includes(s));
     }
 
     if (selectedClients.length) {
       result = result.filter(
-        p => p.nomeCliente && selectedClients.includes(p.nomeCliente)
+        p => !!p.nomeCliente && selectedClients.includes(p.nomeCliente)
       );
     }
 
     if (selectedStatuses.length) {
-      result = result.filter(p =>
-        selectedStatuses.includes(p.status)
-      );
+      result = result.filter(p => selectedStatuses.includes(p.status));
     }
 
     if (selectedMonth !== "ALL") {
-      result = result.filter(
-        p => new Date(p.dataVencimento).getMonth() === selectedMonth
-      );
+      result = result.filter((p) => {
+        const d = safeDate(p.dataVencimento);
+        if (!d) return false;
+        return d.getMonth() === selectedMonth;
+      });
     }
 
     result.sort((a, b) => {
       if (a.status === "PAGO" && b.status !== "PAGO") return 1;
       if (a.status !== "PAGO" && b.status === "PAGO") return -1;
 
-      const dateA = new Date(a.dataVencimento + "T00:00:00").getTime();
-      const dateB = new Date(b.dataVencimento + "T00:00:00").getTime();
+      const dateA = safeDate(a.dataVencimento)?.getTime() ?? 0;
+      const dateB = safeDate(b.dataVencimento)?.getTime() ?? 0;
 
-      if (sortOrder === "desc") {
-        return dateB - dateA;
-      }
-
-      return dateA - dateB;
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
 
     return result;
@@ -86,7 +82,8 @@ export function useParcelasFiltradas({
     semanaFutura.setDate(hoje.getDate() + 7);
 
     return filtradas.filter(p => {
-      const venc = new Date(p.dataVencimento);
+      const venc = safeDate(p.dataVencimento);
+      if (!venc) return false;
       return venc >= hoje && venc <= semanaFutura;
     }).length;
   }, [filtradas]);

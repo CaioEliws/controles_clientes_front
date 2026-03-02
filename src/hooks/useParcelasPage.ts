@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useParcelas } from "@/hooks/useParcelas";
 import { useParcelasFiltradas } from "@/hooks/useParcelasFiltradas";
 import type { ParcelaResponse, StatusParcela } from "@/types";
+import { toIsoDateString, toNumber } from "@/utils/normalize";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -93,20 +94,29 @@ export function useParcelasPage() {
     setPage(1);
   }, []);
 
+  // ✅ Aqui resolve os erros da linha 100/101: normaliza número e data
   const mapParcelaToSelecionada = useCallback(
     (p: ParcelaResponse): ParcelaSelecionada => ({
       idEmprestimo: p.idEmprestimo,
       numeroParcela: p.numeroParcela,
-      valorRestante: p.valorParcela - (p.valorPago || 0),
-      dataVencimento: p.dataVencimento,
+      valorRestante: toNumber(p.valorParcela) - toNumber(p.valorPago),
+      dataVencimento: toIsoDateString(p.dataVencimento),
     }),
     []
   );
 
-  const openPagar = useCallback((p: { idEmprestimo: number; numeroParcela: number; valorRestante: number }) => {
-    setSelected({ idEmprestimo: p.idEmprestimo, numeroParcela: p.numeroParcela, valorRestante: p.valorRestante, dataVencimento: "" });
-    setDialogOpen(true);
-  }, []);
+  const openPagar = useCallback(
+    (p: { idEmprestimo: number; numeroParcela: number; valorRestante: number }) => {
+      setSelected({
+        idEmprestimo: p.idEmprestimo,
+        numeroParcela: p.numeroParcela,
+        valorRestante: p.valorRestante,
+        dataVencimento: "",
+      });
+      setDialogOpen(true);
+    },
+    []
+  );
 
   const openAlterarData = useCallback(
     (parcela: ParcelaResponse) => {
@@ -125,7 +135,9 @@ export function useParcelasPage() {
     page,
     setPage,
     selectedClients,
+    setSelectedClients,
     selectedStatuses,
+    setSelectedStatuses,
     selectedMonth,
     sortOrder,
     setSelectedMonth,

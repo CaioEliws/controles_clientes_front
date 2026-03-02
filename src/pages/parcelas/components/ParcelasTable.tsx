@@ -14,12 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Filter,
-  ChevronDown,
-  ArrowUpDown,
-  Calendar,
-} from "lucide-react";
+import { Filter, ChevronDown, ArrowUpDown, Calendar } from "lucide-react";
 
 import type { ParcelaResponse, StatusParcela } from "@/types";
 import { MESES } from "@/hooks/useParcelasFiltradas";
@@ -46,6 +41,43 @@ interface Props {
   onAlterarData: (parcela: ParcelaResponse) => void;
 }
 
+function toNumberCurrency(value: unknown): number {
+  if (value === null || value === undefined || value === "") return 0;
+
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+
+  if (typeof value === "string") {
+    const cleaned = value
+      .replace(/[R$\s]/g, "")
+      .replace(/\./g, "")
+      .replace(",", ".");
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatCurrencySafe(value: unknown): string {
+  const n = toNumberCurrency(value);
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDateSafe(value: unknown): string {
+  if (!value) return "-";
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split("-").map(Number);
+    const localDate = new Date(y, m - 1, d);
+    return localDate.toLocaleDateString("pt-BR");
+  }
+
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("pt-BR");
+}
+
 export function ParcelasTable({
   loading,
   parcelas,
@@ -60,12 +92,6 @@ export function ParcelasTable({
   onPagar,
   onAlterarData,
 }: Props) {
-  const formatCurrency = (val: number) =>
-    val.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-
   return (
     <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden">
       <CardContent className="p-0">
@@ -86,11 +112,13 @@ export function ParcelasTable({
                       />
                     </button>
                   </PopoverTrigger>
+
                   <PopoverContent className="w-64 p-2" align="start">
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-slate-500 px-2 py-1 uppercase tracking-wider">
                         Filtrar Clientes
                       </p>
+
                       <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
                         {uniqueClients.map((client) => (
                           <div
@@ -98,9 +126,7 @@ export function ParcelasTable({
                             className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-md cursor-pointer"
                             onClick={() => toggleClient(client)}
                           >
-                            <Checkbox
-                              checked={selectedClients.includes(client)}
-                            />
+                            <Checkbox checked={selectedClients.includes(client)} />
                             <span className="text-sm">{client}</span>
                           </div>
                         ))}
@@ -121,12 +147,14 @@ export function ParcelasTable({
                       Vencimento <Calendar className="w-3.5 h-3.5" />
                     </button>
                   </PopoverTrigger>
+
                   <PopoverContent className="w-56 p-2" align="start">
                     <div className="space-y-3">
                       <div className="space-y-1">
                         <p className="text-[10px] font-bold text-slate-500 px-2 uppercase">
                           Ordenação
                         </p>
+
                         <button
                           className="w-full text-left text-sm hover:bg-slate-50 p-2 rounded-md"
                           onClick={() => setSortOrder("desc")}
@@ -134,6 +162,7 @@ export function ParcelasTable({
                           <ArrowUpDown className="w-3.5 h-3.5 inline mr-2" />
                           Mais Antigos
                         </button>
+
                         <button
                           className="w-full text-left text-sm hover:bg-slate-50 p-2 rounded-md"
                           onClick={() => setSortOrder("asc")}
@@ -147,6 +176,7 @@ export function ParcelasTable({
                         <p className="text-[10px] font-bold text-slate-500 px-2 uppercase">
                           Filtrar por Mês
                         </p>
+
                         <select
                           className="w-full text-sm border rounded-md p-1 bg-white"
                           value={selectedMonth}
@@ -178,6 +208,7 @@ export function ParcelasTable({
                       Status <ChevronDown className="w-3.5 h-3.5" />
                     </button>
                   </PopoverTrigger>
+
                   <PopoverContent className="w-48 p-2" align="start">
                     {(
                       ["PENDENTE", "ATRASADO", "PAGO", "PARCIAL"] as StatusParcela[]
@@ -202,26 +233,21 @@ export function ParcelasTable({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-center py-20 text-slate-400"
-                >
+                <TableCell colSpan={7} className="text-center py-20 text-slate-400">
                   Carregando dados...
                 </TableCell>
               </TableRow>
             ) : parcelas.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-center py-20 text-slate-400"
-                >
+                <TableCell colSpan={7} className="text-center py-20 text-slate-400">
                   Nenhum resultado encontrado.
                 </TableCell>
               </TableRow>
             ) : (
               parcelas.map((p) => {
-                const valorPago = p.valorPago || 0;
-                const valorRestante = p.valorParcela - valorPago;
+                const valorParcela = toNumberCurrency(p.valorParcela);
+                const valorPago = toNumberCurrency(p.valorPago);
+                const valorRestante = Math.max(0, valorParcela - valorPago);
 
                 return (
                   <TableRow
@@ -236,18 +262,14 @@ export function ParcelasTable({
                       #{p.numeroParcela}
                     </TableCell>
 
-                    <TableCell>
-                      {formatCurrency(p.valorParcela)}
-                    </TableCell>
+                    <TableCell>{formatCurrencySafe(valorParcela)}</TableCell>
 
                     <TableCell className="font-bold text-emerald-600">
-                      {formatCurrency(valorPago)}
+                      {formatCurrencySafe(valorPago)}
                     </TableCell>
 
                     <TableCell className="text-slate-600">
-                      {new Date(
-                        p.dataVencimento + "T00:00:00"
-                      ).toLocaleDateString("pt-BR")}
+                      {formatDateSafe(p.dataVencimento)}
                     </TableCell>
 
                     <TableCell>
@@ -256,8 +278,8 @@ export function ParcelasTable({
                           p.status === "PAGO"
                             ? "default"
                             : p.status === "ATRASADO"
-                            ? "destructive"
-                            : "outline"
+                              ? "destructive"
+                              : "outline"
                         }
                       >
                         {p.status}
@@ -267,9 +289,7 @@ export function ParcelasTable({
                     <TableCell className="text-right">
                       {p.status !== "PAGO" && (
                         <div className="flex justify-end gap-2">
-                          <AlterarDataParcelaButton
-                            onClick={() => onAlterarData(p)}
-                          />
+                          <AlterarDataParcelaButton onClick={() => onAlterarData(p)} />
                           <PagarParcelaButton
                             onClick={() =>
                               onPagar({
