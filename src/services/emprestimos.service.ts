@@ -24,4 +24,14 @@ export const emprestimosService = {
 
   create: (clienteId: number, data: CriarEmprestimoDTO) =>
     apiClient.post<void>(`/clientes/${clienteId}/emprestimos`, data),
+
+  refinanciar: (clienteId: number, emprestimoId: number) =>
+    apiClient.post<void>(
+      `/clientes/${clienteId}/emprestimos/${emprestimoId}/refinanciar`
+    ),
+
+  quitar: (clienteId: number, emprestimoId: number) =>
+    apiClient.post<void>(
+      `/clientes/${clienteId}/emprestimos/${emprestimoId}/quitar`
+    ),
 };

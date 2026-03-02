@@ -55,8 +55,8 @@ export function Emprestimo() {
             onChange={(e) => vm.setSortOrder(e.target.value as "asc" | "desc")}
             disabled={!vm.selectedCliente}
           >
-            <option value="desc">Mais antigos</option>
-            <option value="asc">Mais recentes</option>
+            <option value="asc">Mais antigos</option>
+            <option value="desc">Mais recentes</option>
           </select>
 
           {(!!vm.clientSearch || !!vm.selectedCliente) && (
@@ -84,8 +84,12 @@ export function Emprestimo() {
         loading={vm.loading}
         emprestimos={vm.emprestimos}
         selectedClienteName={vm.selectedClienteName}
+        selectedClienteId={vm.selectedCliente}
         onOpenParcelas={vm.openParcelas}
+        onRefetch={vm.refetch}
       />
     </div>
   );
 }
+
+export { EmprestimosTable };
