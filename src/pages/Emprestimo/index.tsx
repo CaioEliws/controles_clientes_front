@@ -10,7 +10,7 @@ export function Emprestimo() {
   const vm = useEmprestimosPage();
 
   return (
-    <div className="p-6">
+    <div className="p-6 overflow-x-hidden">
       <div className="flex flex-col gap-2 mb-4">
         <h1 className="text-2xl font-semibold">Empréstimos</h1>
         <p className="text-sm text-slate-500">
@@ -91,5 +91,3 @@ export function Emprestimo() {
     </div>
   );
 }
-
-export { EmprestimosTable };
