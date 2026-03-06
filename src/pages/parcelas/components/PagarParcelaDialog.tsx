@@ -23,7 +23,9 @@ type Props = {
   idEmprestimo: number;
   numeroParcela: number;
   valorParcela: number;
-  onSuccess?: () => Promise<void>;
+  valorPago?: number;
+  status?: "PENDENTE" | "PARCIAL" | "PAGO" | "ATRASADO";
+  onSuccess?: () => Promise<void> | void;
 };
 
 const baseSchema = z.object({
@@ -42,28 +44,33 @@ export function PagarParcelaDialog({
   idEmprestimo,
   numeroParcela,
   valorParcela,
+  valorPago = 0,
   onSuccess,
 }: Props) {
+  const saldoRestante = Math.max(valorParcela - valorPago, 0);
+  const temPagamentoParcial = valorPago > 0 && saldoRestante > 0;
+
   const resolver = useMemo(() => {
     const schema = baseSchema.superRefine((data, ctx) => {
-      const pago = parseCurrency(data.valorPago);
-      if (pago > valorParcela + 0.01) {
+      const valorDigitado = parseCurrency(data.valorPago);
+
+      if (valorDigitado > saldoRestante + 0.01) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["valorPago"],
-          message: "Valor excede o saldo!",
+          message: "Valor excede o saldo restante!",
         });
       }
     });
 
     return zodResolver(schema);
-  }, [valorParcela]);
+  }, [saldoRestante]);
 
   const form = useForm<FormData>({
     resolver,
     mode: "onChange",
     defaultValues: {
-      valorPago: formatCurrency(valorParcela),
+      valorPago: formatCurrency(saldoRestante),
     },
   });
 
@@ -78,92 +85,188 @@ export function PagarParcelaDialog({
 
   const valorPagoRaw = useWatch({ control, name: "valorPago" }) ?? "";
   const valorDigitado = parseCurrency(valorPagoRaw);
-
-  const pagamentoTotal = Math.abs(valorDigitado - valorParcela) < 0.01;
+  const pagamentoTotal = Math.abs(valorDigitado - saldoRestante) < 0.01;
 
   useEffect(() => {
-    if (open) reset({ valorPago: formatCurrency(valorParcela) });
-  }, [open, valorParcela, reset]);
+    if (open) {
+      reset({
+        valorPago: formatCurrency(saldoRestante),
+      });
+    }
+  }, [open, saldoRestante, reset]);
+
+  const valorPagoField = register("valorPago");
 
   const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
 
     if (raw.trim() === "") {
-      setValue("valorPago", "", { shouldValidate: true, shouldDirty: true });
+      setValue("valorPago", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
       return;
     }
 
-    const n = parseCurrency(raw);
-    setValue("valorPago", formatCurrency(n), {
+    const onlyDigits = raw.replace(/\D/g, "");
+
+    if (!onlyDigits) {
+      setValue("valorPago", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      return;
+    }
+
+    const numericValue = Number(onlyDigits) / 100;
+
+    setValue("valorPago", formatCurrency(numericValue), {
       shouldValidate: true,
       shouldDirty: true,
     });
   };
 
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    requestAnimationFrame(() => {
+      e.target.select();
+    });
+  };
+
   const onSubmit = async (data: FormData) => {
-    const valorPago = parseCurrency(data.valorPago);
+    const valorInformado = parseCurrency(data.valorPago);
 
     try {
       if (pagamentoTotal) {
         await parcelasService.pagar(idEmprestimo, numeroParcela);
       } else {
-        await parcelasService.pagarParcial(idEmprestimo, numeroParcela, valorPago);
+        await parcelasService.pagarParcial(
+          idEmprestimo,
+          numeroParcela,
+          valorInformado
+        );
       }
 
-      if (onSuccess) await onSuccess();
+      await onSuccess?.();
       onOpenChange(false);
     } catch (err: unknown) {
-      if (err instanceof Error) alert(err.message);
-      else alert("Erro inesperado ao pagar parcela.");
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert("Erro inesperado ao pagar parcela.");
+      }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl bg-white border-none">
+      <DialogContent className="rounded-2xl border-none bg-white sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Pagar Parcela #{numeroParcela}</DialogTitle>
-          <DialogDescription>
-            Quanto o cliente está pagando deste saldo?
+          <DialogTitle className="text-xl font-semibold text-slate-900">
+            Pagar Parcela #{numeroParcela}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-slate-500">
+            Informe quanto o cliente está pagando deste saldo.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-            <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">
-              Saldo Devedor
-            </p>
-            <p className="text-2xl font-black text-slate-900">
-              {formatCurrency(valorParcela)}
-            </p>
-          </div>
+          {temPagamentoParcial ? (
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm font-semibold text-amber-800">
+                  Esta parcela já possui um pagamento parcial registrado.
+                </p>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Valor Total da Parcela
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                    {formatCurrency(valorParcela)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Valor Já Pago
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-emerald-600">
+                    {formatCurrency(valorPago)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Saldo Restante
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-slate-900">
+                    {formatCurrency(saldoRestante)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Saldo Devedor
+              </p>
+              <p className="mt-1 text-2xl font-semibold text-slate-900">
+                {formatCurrency(saldoRestante)}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label className="text-sm font-medium text-slate-700">
               Valor a Abater
             </label>
 
             <Input
-              inputMode="decimal"
+              {...valorPagoField}
+              inputMode="numeric"
               placeholder="R$ 0,00"
-              {...register("valorPago")}
+              value={valorPagoRaw}
               onChange={handleCurrencyChange}
-              className="text-lg font-bold"
+              onFocus={handleFocus}
+              className="h-12 rounded-xl border-slate-200 text-base font-medium text-slate-900 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-slate-300"
             />
 
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                Digite o valor pago pelo cliente.
+              </span>
+
+              {valorPagoRaw && !errors.valorPago && (
+                <span className="text-xs font-medium text-slate-600">
+                  {pagamentoTotal ? "Pagamento total" : "Pagamento parcial"}
+                </span>
+              )}
+            </div>
+
             {errors.valorPago && (
-              <p className="text-xs text-red-600 font-bold">
+              <p className="text-xs font-semibold text-red-600">
                 {errors.valorPago.message}
               </p>
             )}
           </div>
 
-          <DialogFooter className="sm:justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="font-medium"
+            >
               Cancelar
             </Button>
 
-            <Button type="submit" disabled={isSubmitting || !isValid}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !isValid}
+              className="font-medium"
+            >
               {isSubmitting ? "Processando..." : "Confirmar Pagamento"}
             </Button>
           </DialogFooter>

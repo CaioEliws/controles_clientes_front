@@ -42,6 +42,7 @@ export function NovoEmprestimoDialog({
     });
 
     const current = form.getValues("frequenciaPagamento");
+
     if (!current) {
       form.setValue("frequenciaPagamento", "MENSAL", {
         shouldValidate: true,
@@ -52,7 +53,6 @@ export function NovoEmprestimoDialog({
 
   const onSubmit = form.handleSubmit(async (values) => {
     await form.onSubmit(values);
-
     onCreated?.();
     setOpen(false);
   });
@@ -61,7 +61,7 @@ export function NovoEmprestimoDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button disabled={disabled} className="gap-2">
-          <PlusCircle className="w-4 h-4" />
+          <PlusCircle className="h-4 w-4" />
           Criar Empréstimo
         </Button>
       </DialogTrigger>
@@ -77,7 +77,7 @@ export function NovoEmprestimoDialog({
         <form onSubmit={onSubmit} className="mt-2 space-y-6">
           <div className="space-y-2">
             <Label className="text-sm">Cliente</Label>
-            <div className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 flex items-center text-sm text-slate-900">
+            <div className="flex h-10 w-full items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900">
               {selectedClienteName ?? "—"}
             </div>
             <p className="text-xs text-slate-500">
@@ -123,7 +123,6 @@ export function NovoEmprestimoDialog({
                 <option value="" disabled>
                   Selecione a forma
                 </option>
-
                 <option value="PIX">PIX</option>
                 <option value="DINHEIRO">DINHEIRO</option>
               </select>
@@ -153,8 +152,12 @@ export function NovoEmprestimoDialog({
               </Button>
             </DialogClose>
 
-            <Button type="submit" className="gap-2" disabled={!selectedClienteId}>
-              <PlusCircle className="w-4 h-4" />
+            <Button
+              type="submit"
+              className="gap-2"
+              disabled={!selectedClienteId}
+            >
+              <PlusCircle className="h-4 w-4" />
               Criar empréstimo
             </Button>
           </DialogFooter>

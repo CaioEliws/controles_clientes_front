@@ -11,10 +11,10 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
-import { AlterarDataParcelaDialog } from "@/pages/Parcelas/components/AlterarDataParcelaDialog";
+import { AlterarParcelaDialog } from "@/pages/Parcelas/components/AlterarParcelaDialog";
 
 import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
-import { AlterarDataParcelaButton } from "@/components/actions/AlterarDataParcelaButton";
+import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton";
 
 import type { ParcelaTable } from "@/mappers/parcela.mapper";
 
@@ -55,9 +55,9 @@ export function VencemHojeTable({
 
   return (
     <>
-      <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden">
+      <Card className="overflow-hidden rounded-xl border-slate-200 shadow-sm">
         <CardContent className="p-0">
-          <div className="px-8 py-6 border-b bg-slate-50">
+          <div className="border-b bg-slate-50 px-8 py-6">
             <h3 className="text-lg font-semibold text-slate-700">
               Vencem Hoje
             </h3>
@@ -98,7 +98,7 @@ export function VencemHojeTable({
                 <TableRow>
                   <TableCell
                     colSpan={4}
-                    className="text-center py-16 text-slate-400"
+                    className="py-16 text-center text-slate-400"
                   >
                     Nenhuma parcela vencendo hoje.
                   </TableCell>
@@ -116,12 +116,14 @@ export function VencemHojeTable({
                     <TableCell>{formatCurrency(parcela.valor)}</TableCell>
 
                     <TableCell className="text-slate-600">
-                      {new Date(parcela.dataVencimento + "T00:00:00").toLocaleDateString("pt-BR")}
+                      {new Date(
+                        parcela.dataVencimento + "T00:00:00"
+                      ).toLocaleDateString("pt-BR")}
                     </TableCell>
 
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <AlterarDataParcelaButton
+                        <AlterarParcelaButton
                           onClick={() => {
                             setSelected(parcela);
                             setAlterarOpen(true);
@@ -143,8 +145,8 @@ export function VencemHojeTable({
         </CardContent>
 
         {(onNext || onPrev || displayTotalItems > 0) && (
-          <CardFooter className="flex justify-between items-center px-8 py-4 bg-slate-50/50 border-t border-slate-100">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+          <CardFooter className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-8 py-4">
+            <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Página {page} de {totalPages} — {displayTotalItems} resultados
             </span>
           </CardFooter>
@@ -159,15 +161,18 @@ export function VencemHojeTable({
             idEmprestimo={selected.idEmprestimo}
             numeroParcela={selected.numeroParcela}
             valorParcela={selected.valor}
+            valorPago={selected.valorPago}
+            status={selected.status}
             onSuccess={onRefresh}
           />
 
-          <AlterarDataParcelaDialog
+          <AlterarParcelaDialog
             open={alterarOpen}
             onOpenChange={setAlterarOpen}
             idEmprestimo={selected.idEmprestimo}
             numeroParcela={selected.numeroParcela}
             dataAtual={selected.dataVencimento}
+            valorAtual={selected.valor}
             onSuccess={onRefresh}
           />
         </>

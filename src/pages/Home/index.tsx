@@ -4,7 +4,7 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { DashboardHeader } from "@/pages//Home/components/DashboardHeader";
 import { StatsCards } from "@/pages//Home/components/StatsCards";
 import { FinancialChart } from "@/pages//Home/components/FinancialChart";
-import { VencemHojeTable } from "@/pages//Home/components/VencemHojeTable";
+import { VencemHojeTable } from "@/pages/Home/components/VencemHojeTable";
 import { AtrasadasTable } from "@/pages//Home/components/AtrasadasTable";
 
 export function Home() {

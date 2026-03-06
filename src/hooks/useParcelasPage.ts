@@ -10,8 +10,11 @@ const ITEMS_PER_PAGE = 10;
 export type ParcelaSelecionada = {
   idEmprestimo: number;
   numeroParcela: number;
+  valorParcela: number;
+  valorPago: number;
   valorRestante: number;
   dataVencimento: string;
+  status: StatusParcela;
 };
 
 export function useParcelasPage() {
@@ -50,16 +53,17 @@ export function useParcelasPage() {
     ];
   }, [parcelasBase]);
 
-  const { filtradas, totalAtrasadas, vencendoEstaSemana } = useParcelasFiltradas({
-    parcelas: parcelasBase,
-    search,
-    selectedClients,
-    selectedStatuses,
-    selectedMonth,
-    sortOrder,
-  });
+  const { filtradas, totalAtrasadas, vencendoEstaSemana } =
+    useParcelasFiltradas({
+      parcelas: parcelasBase,
+      search,
+      selectedClients,
+      selectedStatuses,
+      selectedMonth,
+      sortOrder,
+    });
 
-  const totalPages = Math.ceil(filtradas.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtradas.length / ITEMS_PER_PAGE));
 
   const paginated = useMemo(() => {
     return filtradas.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -82,43 +86,50 @@ export function useParcelasPage() {
 
   const toggleClient = useCallback((client: string) => {
     setSelectedClients((prev) =>
-      prev.includes(client) ? prev.filter((c) => c !== client) : [...prev, client]
+      prev.includes(client)
+        ? prev.filter((c) => c !== client)
+        : [...prev, client]
     );
     setPage(1);
   }, []);
 
   const toggleStatus = useCallback((status: StatusParcela) => {
     setSelectedStatuses((prev) =>
-      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
+        : [...prev, status]
     );
     setPage(1);
   }, []);
 
-  // ✅ Aqui resolve os erros da linha 100/101: normaliza número e data
   const mapParcelaToSelecionada = useCallback(
-    (p: ParcelaResponse): ParcelaSelecionada => ({
-      idEmprestimo: p.idEmprestimo,
-      numeroParcela: p.numeroParcela,
-      valorRestante: toNumber(p.valorParcela) - toNumber(p.valorPago),
-      dataVencimento: toIsoDateString(p.dataVencimento),
-    }),
-    []
-  );
+    (p: ParcelaResponse): ParcelaSelecionada => {
+      const valorParcela = toNumber(p.valorParcela);
+      const valorPago = toNumber(p.valorPago);
+      const valorRestante = Math.max(0, valorParcela - valorPago);
 
-  const openPagar = useCallback(
-    (p: { idEmprestimo: number; numeroParcela: number; valorRestante: number }) => {
-      setSelected({
+      return {
         idEmprestimo: p.idEmprestimo,
         numeroParcela: p.numeroParcela,
-        valorRestante: p.valorRestante,
-        dataVencimento: "",
-      });
-      setDialogOpen(true);
+        valorParcela,
+        valorPago,
+        valorRestante,
+        dataVencimento: toIsoDateString(p.dataVencimento),
+        status: p.status,
+      };
     },
     []
   );
 
-  const openAlterarData = useCallback(
+  const openPagar = useCallback(
+    (parcela: ParcelaResponse) => {
+      setSelected(mapParcelaToSelecionada(parcela));
+      setDialogOpen(true);
+    },
+    [mapParcelaToSelecionada]
+  );
+
+  const openAlterarParcela = useCallback(
     (parcela: ParcelaResponse) => {
       setSelected(mapParcelaToSelecionada(parcela));
       setAlterarDialogOpen(true);
@@ -161,6 +172,6 @@ export function useParcelasPage() {
     alterarDialogOpen,
     setAlterarDialogOpen,
     openPagar,
-    openAlterarData,
+    openAlterarParcela,
   };
 }

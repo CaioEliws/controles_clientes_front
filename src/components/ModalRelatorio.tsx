@@ -25,7 +25,7 @@ import type { Relatorio } from "@/types";
 
 interface Props {
   clienteId: number;
-  nomeCliente: string; // 🔥 IMPORTANTE
+  nomeCliente: string;
   API: string;
 }
 
@@ -37,11 +37,7 @@ interface CardItem {
   span?: boolean;
 }
 
-export function ModalRelatorio({
-  clienteId,
-  nomeCliente,
-  API,
-}: Props) {
+export function ModalRelatorio({ clienteId, nomeCliente, API }: Props) {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -75,9 +71,7 @@ export function ModalRelatorio({
 
   function handleVerDetalhes() {
     setOpen(false);
-    navigate(
-      `/parcelas?cliente=${encodeURIComponent(nomeCliente)}`
-    );
+    navigate(`/parcelas?cliente=${encodeURIComponent(nomeCliente)}`);
   }
 
   const cards: CardItem[] = relatorio
@@ -129,8 +123,7 @@ export function ModalRelatorio({
           label: "Parcelas em Atraso",
           value: relatorio.parcelasAtrasadas,
           icon: <FiDollarSign />,
-          variant:
-            relatorio.parcelasAtrasadas > 0 ? "danger" : "neutral",
+          variant: relatorio.parcelasAtrasadas > 0 ? "danger" : "neutral",
           span: true,
         },
       ]
@@ -162,7 +155,7 @@ export function ModalRelatorio({
 
         {!loading && relatorio && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+            <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2">
               {cards.map((card, i) => (
                 <StatSmallCard
                   key={i}

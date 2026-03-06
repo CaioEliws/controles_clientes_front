@@ -5,7 +5,7 @@ interface Props {
   onClick: () => void;
 }
 
-export function AlterarDataParcelaButton({ onClick }: Props) {
+export function AlterarParcelaButton({ onClick }: Props) {
   return (
     <Button
       size="sm"
@@ -14,7 +14,7 @@ export function AlterarDataParcelaButton({ onClick }: Props) {
       onClick={onClick}
     >
       <CalendarClock className="w-4 h-4 mr-1" />
-      Data
+      Editar
     </Button>
   );
 }

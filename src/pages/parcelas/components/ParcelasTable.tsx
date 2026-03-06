@@ -18,9 +18,10 @@ import { Filter, ChevronDown, ArrowUpDown, Calendar } from "lucide-react";
 
 import type { ParcelaResponse, StatusParcela } from "@/types";
 import { MESES } from "@/hooks/useParcelasFiltradas";
+import { formatCurrency, formatDate } from "@/utils/format";
 
 import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
-import { AlterarDataParcelaButton } from "@/components/actions/AlterarDataParcelaButton";
+import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton";
 
 interface Props {
   loading: boolean;
@@ -33,12 +34,8 @@ interface Props {
   toggleStatus: (status: StatusParcela) => void;
   setSelectedMonth: (value: number | "ALL") => void;
   setSortOrder: (value: "asc" | "desc") => void;
-  onPagar: (parcela: {
-    idEmprestimo: number;
-    numeroParcela: number;
-    valorRestante: number;
-  }) => void;
-  onAlterarData: (parcela: ParcelaResponse) => void;
+  onPagar: (parcela: ParcelaResponse) => void;
+  onAlterarParcela: (parcela: ParcelaResponse) => void;
 }
 
 function toNumberCurrency(value: unknown): number {
@@ -59,25 +56,6 @@ function toNumberCurrency(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function formatCurrencySafe(value: unknown): string {
-  const n = toNumberCurrency(value);
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDateSafe(value: unknown): string {
-  if (!value) return "-";
-
-  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const [y, m, d] = value.split("-").map(Number);
-    const localDate = new Date(y, m - 1, d);
-    return localDate.toLocaleDateString("pt-BR");
-  }
-
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("pt-BR");
-}
-
 export function ParcelasTable({
   loading,
   parcelas,
@@ -90,10 +68,10 @@ export function ParcelasTable({
   setSelectedMonth,
   setSortOrder,
   onPagar,
-  onAlterarData,
+  onAlterarParcela,
 }: Props) {
   return (
-    <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden">
+    <Card className="overflow-hidden rounded-xl border-slate-200 shadow-sm">
       <CardContent className="p-0">
         <Table>
           <TableHeader className="bg-slate-50">
@@ -101,12 +79,12 @@ export function ParcelasTable({
               <TableHead className="w-[250px]">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
+                    <button className="flex items-center gap-2 transition-colors hover:text-slate-900">
                       Cliente
                       <Filter
-                        className={`w-3.5 h-3.5 ${
+                        className={`h-3.5 w-3.5 ${
                           selectedClients.length > 0
-                            ? "text-blue-600 fill-blue-600"
+                            ? "fill-blue-600 text-blue-600"
                             : ""
                         }`}
                       />
@@ -115,15 +93,15 @@ export function ParcelasTable({
 
                   <PopoverContent className="w-64 p-2" align="start">
                     <div className="space-y-2">
-                      <p className="text-xs font-bold text-slate-500 px-2 py-1 uppercase tracking-wider">
+                      <p className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-500">
                         Filtrar Clientes
                       </p>
 
-                      <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
+                      <div className="max-h-60 space-y-1 overflow-y-auto pr-1">
                         {uniqueClients.map((client) => (
                           <div
                             key={client}
-                            className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-md cursor-pointer"
+                            className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-slate-50"
                             onClick={() => toggleClient(client)}
                           >
                             <Checkbox checked={selectedClients.includes(client)} />
@@ -143,42 +121,42 @@ export function ParcelasTable({
               <TableHead>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
-                      Vencimento <Calendar className="w-3.5 h-3.5" />
+                    <button className="flex items-center gap-2 transition-colors hover:text-slate-900">
+                      Vencimento <Calendar className="h-3.5 w-3.5" />
                     </button>
                   </PopoverTrigger>
 
                   <PopoverContent className="w-56 p-2" align="start">
                     <div className="space-y-3">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-slate-500 px-2 uppercase">
+                        <p className="px-2 text-[10px] font-bold uppercase text-slate-500">
                           Ordenação
                         </p>
 
                         <button
-                          className="w-full text-left text-sm hover:bg-slate-50 p-2 rounded-md"
+                          className="w-full rounded-md p-2 text-left text-sm hover:bg-slate-50"
                           onClick={() => setSortOrder("desc")}
                         >
-                          <ArrowUpDown className="w-3.5 h-3.5 inline mr-2" />
+                          <ArrowUpDown className="mr-2 inline h-3.5 w-3.5" />
                           Mais Antigos
                         </button>
 
                         <button
-                          className="w-full text-left text-sm hover:bg-slate-50 p-2 rounded-md"
+                          className="w-full rounded-md p-2 text-left text-sm hover:bg-slate-50"
                           onClick={() => setSortOrder("asc")}
                         >
-                          <ArrowUpDown className="w-3.5 h-3.5 inline mr-2 rotate-180" />
+                          <ArrowUpDown className="mr-2 inline h-3.5 w-3.5 rotate-180" />
                           Mais Recentes
                         </button>
                       </div>
 
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-slate-500 px-2 uppercase">
+                        <p className="px-2 text-[10px] font-bold uppercase text-slate-500">
                           Filtrar por Mês
                         </p>
 
                         <select
-                          className="w-full text-sm border rounded-md p-1 bg-white"
+                          className="w-full rounded-md border bg-white p-1 text-sm"
                           value={selectedMonth}
                           onChange={(e) =>
                             setSelectedMonth(
@@ -204,8 +182,8 @@ export function ParcelasTable({
               <TableHead>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
-                      Status <ChevronDown className="w-3.5 h-3.5" />
+                    <button className="flex items-center gap-2 transition-colors hover:text-slate-900">
+                      Status <ChevronDown className="h-3.5 w-3.5" />
                     </button>
                   </PopoverTrigger>
 
@@ -215,7 +193,7 @@ export function ParcelasTable({
                     ).map((s) => (
                       <div
                         key={s}
-                        className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-md cursor-pointer"
+                        className="flex cursor-pointer items-center gap-2 rounded-md p-2 hover:bg-slate-50"
                         onClick={() => toggleStatus(s)}
                       >
                         <Checkbox checked={selectedStatuses.includes(s)} />
@@ -233,13 +211,13 @@ export function ParcelasTable({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-20 text-slate-400">
+                <TableCell colSpan={7} className="py-20 text-center text-slate-400">
                   Carregando dados...
                 </TableCell>
               </TableRow>
             ) : parcelas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-20 text-slate-400">
+                <TableCell colSpan={7} className="py-20 text-center text-slate-400">
                   Nenhum resultado encontrado.
                 </TableCell>
               </TableRow>
@@ -247,7 +225,6 @@ export function ParcelasTable({
               parcelas.map((p) => {
                 const valorParcela = toNumberCurrency(p.valorParcela);
                 const valorPago = toNumberCurrency(p.valorPago);
-                const valorRestante = Math.max(0, valorParcela - valorPago);
 
                 return (
                   <TableRow
@@ -258,18 +235,18 @@ export function ParcelasTable({
                       {p.nomeCliente}
                     </TableCell>
 
-                    <TableCell className="text-slate-500 font-medium">
+                    <TableCell className="font-medium text-slate-500">
                       #{p.numeroParcela}
                     </TableCell>
 
-                    <TableCell>{formatCurrencySafe(valorParcela)}</TableCell>
+                    <TableCell>{formatCurrency(valorParcela)}</TableCell>
 
                     <TableCell className="font-bold text-emerald-600">
-                      {formatCurrencySafe(valorPago)}
+                      {formatCurrency(valorPago)}
                     </TableCell>
 
                     <TableCell className="text-slate-600">
-                      {formatDateSafe(p.dataVencimento)}
+                      {formatDate(p.dataVencimento)}
                     </TableCell>
 
                     <TableCell>
@@ -278,8 +255,8 @@ export function ParcelasTable({
                           p.status === "PAGO"
                             ? "default"
                             : p.status === "ATRASADO"
-                              ? "destructive"
-                              : "outline"
+                            ? "destructive"
+                            : "outline"
                         }
                       >
                         {p.status}
@@ -289,16 +266,10 @@ export function ParcelasTable({
                     <TableCell className="text-right">
                       {p.status !== "PAGO" && (
                         <div className="flex justify-end gap-2">
-                          <AlterarDataParcelaButton onClick={() => onAlterarData(p)} />
-                          <PagarParcelaButton
-                            onClick={() =>
-                              onPagar({
-                                idEmprestimo: p.idEmprestimo,
-                                numeroParcela: p.numeroParcela,
-                                valorRestante,
-                              })
-                            }
+                          <AlterarParcelaButton
+                            onClick={() => onAlterarParcela(p)}
                           />
+                          <PagarParcelaButton onClick={() => onPagar(p)} />
                         </div>
                       )}
                     </TableCell>

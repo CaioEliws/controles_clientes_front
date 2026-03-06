@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { parcelasSearchSchema } from "@/schemas/parcelas.schema";
 
 import { ParcelasHeader } from "@/pages/Parcelas/components/ParcelasHeader";
@@ -6,21 +7,31 @@ import { ParcelasStats } from "@/pages/Parcelas/components/ParcelasStats";
 import { ParcelasTable } from "@/pages/Parcelas/components/ParcelasTable";
 import { ParcelasPagination } from "@/pages/Parcelas/components/ParcelasPagination";
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
-import { AlterarDataParcelaDialog } from "@/pages/Parcelas/components/AlterarDataParcelaDialog";
+import { AlterarParcelaDialog } from "@/pages/Parcelas/components/AlterarParcelaDialog";
 import { ParcelasSkeleton } from "@/pages/Parcelas/components/ParcelasSkeleton";
 import { useParcelasPage } from "@/hooks/useParcelasPage";
 
 export function Parcelas() {
   const vm = useParcelasPage();
-
+  const [searchParams] = useSearchParams();
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cliente = searchParams.get("cliente");
+    if (!cliente) return;
+
+    vm.setSearch(cliente);
+    vm.setPage(1);
+  }, [searchParams, vm]);
 
   const handleSearchChange = (value: string) => {
     const parsed = parcelasSearchSchema.safeParse(value);
+
     if (!parsed.success) {
       setSearchError(parsed.error.issues[0]?.message ?? "Busca inválida.");
       return;
     }
+
     setSearchError(null);
     vm.setSearch(parsed.data);
     vm.setPage(1);
@@ -28,7 +39,7 @@ export function Parcelas() {
 
   return (
     <div className="flex min-h-screen bg-slate-50/50">
-      <main className="flex-1 p-8 space-y-8">
+      <main className="flex-1 space-y-8 p-8">
         {vm.loading ? (
           <ParcelasSkeleton />
         ) : (
@@ -68,7 +79,7 @@ export function Parcelas() {
                 vm.setPage(1);
               }}
               onPagar={vm.openPagar}
-              onAlterarData={vm.openAlterarData}
+              onAlterarParcela={vm.openAlterarParcela}
             />
 
             <ParcelasPagination
@@ -88,18 +99,21 @@ export function Parcelas() {
           onOpenChange={vm.setDialogOpen}
           idEmprestimo={vm.selected.idEmprestimo}
           numeroParcela={vm.selected.numeroParcela}
-          valorParcela={vm.selected.valorRestante}
+          valorParcela={vm.selected.valorParcela}
+          valorPago={vm.selected.valorPago}
+          status={vm.selected.status}
           onSuccess={vm.fetchParcelas}
         />
       )}
 
       {vm.selected && (
-        <AlterarDataParcelaDialog
+        <AlterarParcelaDialog
           open={vm.alterarDialogOpen}
           onOpenChange={vm.setAlterarDialogOpen}
           idEmprestimo={vm.selected.idEmprestimo}
           numeroParcela={vm.selected.numeroParcela}
           dataAtual={vm.selected.dataVencimento}
+          valorAtual={vm.selected.valorRestante}
           onSuccess={vm.fetchParcelas}
         />
       )}

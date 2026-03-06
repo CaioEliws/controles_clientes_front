@@ -1,25 +1,27 @@
 import { useCallback, useState } from "react";
 import { parcelasService } from "@/services/parcelas.service";
 
-export function useAlterarDataParcela() {
+export function useAlterarParcela() {
   const [loading, setLoading] = useState(false);
 
-  const alterarData = useCallback(
+  const alterarParcela = useCallback(
     async (
       idEmprestimo: number,
       numeroParcela: number,
-      novaData: string
+      novaData: string,
+      novoValor: number
     ) => {
       try {
         setLoading(true);
 
-        await parcelasService.alterarData(
+        await parcelasService.alterarParcela(
           idEmprestimo,
           numeroParcela,
-          novaData
+          novaData,
+          novoValor
         );
       } catch (error) {
-        console.error("Erro ao alterar data:", error);
+        console.error("Erro ao alterar parcela:", error);
         throw error;
       } finally {
         setLoading(false);
@@ -28,5 +30,5 @@ export function useAlterarDataParcela() {
     []
   );
 
-  return { alterarData, loading };
+  return { alterarParcela, loading };
 }

@@ -25,57 +25,63 @@ export function EmprestimosTableRow({
       key={emprestimo.id}
       role="button"
       tabIndex={0}
-      className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+      className="cursor-pointer transition-colors hover:bg-slate-50/50"
       onClick={(ev) => {
         const target = ev.target as HTMLElement;
         if (target.closest("[data-stop-row-click='true']")) return;
-        onOpenParcelas({ emprestimoId: emprestimo.id, cliente: emprestimo.nomeCliente });
+
+        onOpenParcelas({
+          emprestimoId: emprestimo.id,
+          cliente: emprestimo.nomeCliente,
+        });
       }}
       onKeyDown={(ev) => {
         if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
-          onOpenParcelas({ emprestimoId: emprestimo.id, cliente: emprestimo.nomeCliente });
+          onOpenParcelas({
+            emprestimoId: emprestimo.id,
+            cliente: emprestimo.nomeCliente,
+          });
         }
       }}
     >
-      {/* ✅ aqui a gente trunca pra nunca estourar */}
-      <TableCell className="font-semibold text-slate-700 truncate max-w-[180px]">
+      <TableCell className="max-w-[180px] truncate font-semibold text-slate-700">
         {emprestimo.nomeCliente}
       </TableCell>
 
-      <TableCell className="text-slate-500 whitespace-nowrap">
+      <TableCell className="whitespace-nowrap text-slate-500">
         {formatDate(emprestimo.dataEmprestimo)}
       </TableCell>
 
-      <TableCell className="text-slate-600 font-medium truncate max-w-[120px]">
+      <TableCell className="max-w-[120px] truncate font-medium text-slate-600">
         {emprestimo.formaPagamento}
       </TableCell>
 
-      <TableCell className="font-semibold whitespace-nowrap">
+      <TableCell className="whitespace-nowrap font-semibold">
         {formatCurrency(emprestimo.valorEmprestado)}
       </TableCell>
 
-      <TableCell className="text-emerald-600 font-bold whitespace-nowrap">
+      <TableCell className="whitespace-nowrap font-bold text-emerald-600">
         {formatCurrency(emprestimo.valorAReceber)}
       </TableCell>
 
-      <TableCell className="font-medium whitespace-nowrap">
+      <TableCell className="whitespace-nowrap font-medium">
         {formatCurrency(emprestimo.valorParcela)}
       </TableCell>
 
-      <TableCell className="text-emerald-700 font-bold whitespace-nowrap">
+      <TableCell className="whitespace-nowrap font-bold text-emerald-700">
         {formatCurrency(emprestimo.valorRecebido)}
       </TableCell>
 
-      <TableCell className="font-semibold whitespace-nowrap">
+      <TableCell className="whitespace-nowrap font-semibold">
         {formatCurrency(emprestimo.valorTotalEmprestimo)}
       </TableCell>
 
-      <TableCell className="text-slate-500 whitespace-nowrap">
+      <TableCell className="whitespace-nowrap text-slate-500">
         {formatDate(emprestimo.inicioPagamento)}
       </TableCell>
 
-      <TableCell className="text-slate-500 whitespace-nowrap">
+      <TableCell className="whitespace-nowrap text-slate-500">
         {formatDate(emprestimo.finalPagamento)}
       </TableCell>
 
