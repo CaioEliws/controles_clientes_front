@@ -26,7 +26,6 @@ import type { Relatorio } from "@/types";
 interface Props {
   clienteId: number;
   nomeCliente: string;
-  API: string;
 }
 
 interface CardItem {
@@ -37,7 +36,7 @@ interface CardItem {
   span?: boolean;
 }
 
-export function ModalRelatorio({ clienteId, nomeCliente, API }: Props) {
+export function ModalRelatorio({ clienteId, nomeCliente }: Props) {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -49,7 +48,7 @@ export function ModalRelatorio({ clienteId, nomeCliente, API }: Props) {
 
     try {
       setLoading(true);
-      const data = await buscarRelatorioCliente(API, clienteId);
+      const data = await buscarRelatorioCliente(clienteId);
       setRelatorio(data);
     } catch (err) {
       console.error("Erro ao buscar relatório:", err);
@@ -63,10 +62,11 @@ export function ModalRelatorio({ clienteId, nomeCliente, API }: Props) {
 
     if (value) {
       handleBuscar();
-    } else {
-      setRelatorio(null);
-      setLoading(false);
+      return;
     }
+
+    setRelatorio(null);
+    setLoading(false);
   }
 
   function handleVerDetalhes() {
@@ -133,14 +133,16 @@ export function ModalRelatorio({ clienteId, nomeCliente, API }: Props) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" className="gap-2">
-          <FiBarChart2 /> Relatório
+          <FiBarChart2 />
+          Relatório
         </Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FiTrendingUp /> Resumo Financeiro
+            <FiTrendingUp />
+            Resumo Financeiro
           </DialogTitle>
           <DialogDescription>
             Acompanhamento financeiro do cliente.
@@ -167,7 +169,8 @@ export function ModalRelatorio({ clienteId, nomeCliente, API }: Props) {
 
             <div className="flex justify-end pt-6">
               <Button onClick={handleVerDetalhes} className="gap-2">
-                Ver detalhes <FiArrowRight />
+                Ver detalhes
+                <FiArrowRight />
               </Button>
             </div>
           </>

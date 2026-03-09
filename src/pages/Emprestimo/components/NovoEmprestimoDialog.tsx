@@ -33,18 +33,22 @@ export function NovoEmprestimoDialog({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-    if (!selectedClienteId) return;
+    if (!open || !selectedClienteId) return;
 
     form.setValue("clienteId", String(selectedClienteId), {
       shouldValidate: true,
       shouldDirty: true,
     });
 
-    const current = form.getValues("frequenciaPagamento");
-
-    if (!current) {
+    if (!form.getValues("frequenciaPagamento")) {
       form.setValue("frequenciaPagamento", "MENSAL", {
+        shouldValidate: true,
+        shouldDirty: false,
+      });
+    }
+
+    if (!form.getValues("tipoContrato")) {
+      form.setValue("tipoContrato", "FISICO", {
         shouldValidate: true,
         shouldDirty: false,
       });
@@ -128,7 +132,7 @@ export function NovoEmprestimoDialog({
               </select>
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2">
               <Label className="text-sm">Frequência de pagamento</Label>
               <select
                 {...form.register("frequenciaPagamento")}
@@ -136,12 +140,25 @@ export function NovoEmprestimoDialog({
                 defaultValue="MENSAL"
               >
                 <option value="MENSAL">Mensal</option>
+                <option value="QUINZENAL">Quinzenal</option>
                 <option value="SEMANAL">Semanal</option>
                 <option value="DIARIO">Diário</option>
               </select>
               <p className="text-xs text-slate-500">
-                Diário gera parcelas todos os dias, pulando domingos.
+                Diário gera parcelas todos os dias; quinzenal gera a cada 15 dias.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Tipo de contrato</Label>
+              <select
+                {...form.register("tipoContrato")}
+                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400"
+                defaultValue="FISICO"
+              >
+                <option value="FISICO">Físico</option>
+                <option value="DIGITAL">Digital</option>
+              </select>
             </div>
           </div>
 

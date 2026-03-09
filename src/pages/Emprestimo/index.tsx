@@ -1,5 +1,6 @@
 import { NovoEmprestimoDialog } from "@/pages/Emprestimo/components/NovoEmprestimoDialog";
 import { EmprestimosTable } from "@/pages/Emprestimo/components/EmprestimosTable";
+import { ModalRelatorio } from "@/components/ModalRelatorio";
 import { useEmprestimosPage } from "@/hooks/useEmprestimoPage";
 
 import { Button } from "@/components/ui/button";
@@ -72,12 +73,21 @@ export function Emprestimo() {
           )}
         </div>
 
-        <NovoEmprestimoDialog
-          disabled={!vm.selectedCliente}
-          selectedClienteId={vm.selectedCliente}
-          selectedClienteName={vm.selectedClienteName}
-          onCreated={vm.refetch}
-        />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {vm.selectedCliente && vm.selectedClienteName && (
+            <ModalRelatorio
+              clienteId={vm.selectedCliente}
+              nomeCliente={vm.selectedClienteName}
+            />
+          )}
+
+          <NovoEmprestimoDialog
+            disabled={!vm.selectedCliente}
+            selectedClienteId={vm.selectedCliente}
+            selectedClienteName={vm.selectedClienteName}
+            onCreated={vm.refetch}
+          />
+        </div>
       </div>
 
       <EmprestimosTable

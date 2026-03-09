@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiClient } from "@/services/apiClient";
 import { parcelasService } from "@/services/parcelas.service";
-import type { ParcelaResponse } from "@/types";
+import { emprestimosService } from "@/services/emprestimos.service";
+import type { ParcelaResponse, EmprestimoDetalhado, Cliente } from "@/types";
 import { mapParcelaToTable, type ParcelaTable } from "@/mappers/parcela.mapper";
 import { parseDateISOorBR } from "@/utils/date";
 import { safeDate, toIsoDateString, toNumber } from "@/utils/normalize";
+import { clientesService } from "@/services/clientes.service";
 
 type Period = "3" | "6" | "12" | "all";
 
@@ -15,7 +16,7 @@ interface Stats {
   totalAtraso: number;
 }
 
-const filterByPeriod = (parcelas: ParcelaResponse[], period: Period) => {
+const filterParcelasByPeriod = (parcelas: ParcelaResponse[], period: Period) => {
   if (period === "all") return parcelas;
 
   const now = new Date();
@@ -26,8 +27,27 @@ const filterByPeriod = (parcelas: ParcelaResponse[], period: Period) => {
   ).getTime();
 
   return parcelas.filter((p) => {
-    // parseDateISOorBR espera string, então normalizamos antes
     const dt = parseDateISOorBR(toIsoDateString(p.dataVencimento));
+    if (!dt) return false;
+    return dt.getTime() >= limite;
+  });
+};
+
+const filterEmprestimosByPeriod = (
+  emprestimos: EmprestimoDetalhado[],
+  period: Period
+) => {
+  if (period === "all") return emprestimos;
+
+  const now = new Date();
+  const limite = new Date(
+    now.getFullYear(),
+    now.getMonth() - Number(period),
+    now.getDate()
+  ).getTime();
+
+  return emprestimos.filter((e) => {
+    const dt = safeDate(e.dataEmprestimo);
     if (!dt) return false;
     return dt.getTime() >= limite;
   });
@@ -41,6 +61,7 @@ let dashboardCache:
       vencemHoje: ParcelaTable[];
       atrasadas: ParcelaTable[];
       todasParcelas: ParcelaResponse[];
+      todosEmprestimos: EmprestimoDetalhado[];
     }
   | null = null;
 
@@ -56,6 +77,9 @@ export function useDashboard() {
   const [todasParcelas, setTodasParcelas] = useState<ParcelaResponse[]>(
     () => dashboardCache?.todasParcelas ?? []
   );
+  const [todosEmprestimos, setTodosEmprestimos] = useState<EmprestimoDetalhado[]>(
+    () => dashboardCache?.todosEmprestimos ?? []
+  );
 
   const [loading, setLoading] = useState(false);
 
@@ -63,28 +87,42 @@ export function useDashboard() {
     setLoading(true);
 
     try {
-      const [vencendo, atrasado, pagas, pendentes] = await Promise.all([
-        parcelasService.getVencendoHoje(),
-        parcelasService.getPorStatus("ATRASADO"),
-        parcelasService.getPorStatus("PAGO"),
-        parcelasService.getPorStatus("PENDENTE"),
-      ]);
+      const [clientes, vencendo, atrasado, pagas, pendentes, parciais] =
+        await Promise.all([
+          clientesService.getAll(),
+          parcelasService.getVencendoHoje(),
+          parcelasService.getPorStatus("ATRASADO"),
+          parcelasService.getPorStatus("PAGO"),
+          parcelasService.getPorStatus("PENDENTE"),
+          parcelasService.getPorStatus("PARCIAL"),
+        ]);
+
+      const emprestimosPorCliente = await Promise.all(
+        clientes.map((cliente: Cliente) =>
+          emprestimosService
+            .getByCliente(cliente.id)
+            .catch(() => [] as EmprestimoDetalhado[])
+        )
+      );
+
+      const todosEmprestimosFlat = emprestimosPorCliente.flat();
 
       const vencemHojeMapped = vencendo.map(mapParcelaToTable);
       const atrasadasMapped = atrasado.map(mapParcelaToTable);
 
-      // base do dashboard (todas as parcelas)
-      const todas = [...pagas, ...pendentes, ...atrasado];
+      const todas = [...pagas, ...pendentes, ...atrasado, ...parciais];
 
       setVencemHoje(vencemHojeMapped);
       setAtrasadas(atrasadasMapped);
       setTodasParcelas(todas);
+      setTodosEmprestimos(todosEmprestimosFlat);
 
       dashboardCache = {
         ts: Date.now(),
         vencemHoje: vencemHojeMapped,
         atrasadas: atrasadasMapped,
         todasParcelas: todas,
+        todosEmprestimos: todosEmprestimosFlat,
       };
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
@@ -108,30 +146,38 @@ export function useDashboard() {
   }, [loadBaseData]);
 
   const stats = useMemo<Stats>(() => {
-    const parcelasFiltradas = filterByPeriod(todasParcelas, period);
+    const emprestimosFiltrados = filterEmprestimosByPeriod(todosEmprestimos, period);
+    const parcelasFiltradas = filterParcelasByPeriod(todasParcelas, period);
 
-    const totalRecebido = parcelasFiltradas
-      .filter((p) => toNumber(p.valorPago) > 0)
-      .reduce((acc, p) => acc + toNumber(p.valorPago), 0);
+    const totalEmprestado = emprestimosFiltrados.reduce(
+      (acc, e) => acc + toNumber(e.valorTotalEmprestimo),
+      0
+    );
 
-    const totalAberto = parcelasFiltradas
-      .filter((p) => p.status === "PENDENTE")
-      .reduce((acc, p) => acc + toNumber(p.valorParcela), 0);
+    const totalRecebido = emprestimosFiltrados.reduce(
+      (acc, e) => acc + toNumber(e.valorRecebido),
+      0
+    );
+
+    const totalAberto = emprestimosFiltrados.reduce(
+      (acc, e) => acc + toNumber(e.valorAReceber),
+      0
+    );
 
     const totalAtraso = parcelasFiltradas
       .filter((p) => p.status === "ATRASADO")
       .reduce((acc, p) => acc + toNumber(p.valorParcela), 0);
 
-    const totalEmprestado = parcelasFiltradas.reduce(
-      (acc, p) => acc + toNumber(p.valorParcela),
-      0
-    );
-
-    return { totalEmprestado, totalRecebido, totalAberto, totalAtraso };
-  }, [todasParcelas, period]);
+    return {
+      totalEmprestado,
+      totalRecebido,
+      totalAberto,
+      totalAtraso,
+    };
+  }, [todosEmprestimos, todasParcelas, period]);
 
   const chartData = useMemo(() => {
-    const parcelasFiltradas = filterByPeriod(todasParcelas, period);
+    const parcelasFiltradas = filterParcelasByPeriod(todasParcelas, period);
 
     const grouped = new Map<string, number>();
 
@@ -168,35 +214,6 @@ export function useDashboard() {
       });
   }, [todasParcelas, period]);
 
-  const handlePagar = useCallback(
-    async (
-      idEmprestimo: number,
-      numeroParcela: number,
-      valorParcela: number,
-      valorPago?: number
-    ) => {
-      try {
-        const pagamentoTotal =
-          !valorPago || Math.abs(valorPago - valorParcela) < 0.01;
-
-        if (pagamentoTotal) {
-          await apiClient.post("/parcelas/pagar", { idEmprestimo, numeroParcela });
-        } else {
-          await apiClient.post("/parcelas/pagar-parcial", {
-            idEmprestimo,
-            numeroParcela,
-            valorPago,
-          });
-        }
-
-        await loadBaseData();
-      } catch (error) {
-        console.error("Erro ao pagar parcela:", error);
-      }
-    },
-    [loadBaseData]
-  );
-
   return {
     period,
     setPeriod,
@@ -205,7 +222,6 @@ export function useDashboard() {
     stats,
     chartData,
     loading,
-    handlePagar,
     refresh,
   };
 }

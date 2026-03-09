@@ -1,7 +1,13 @@
 import { apiClient } from "./apiClient";
 import type { EmprestimoDetalhado, ParcelaResponse } from "@/types";
 
-export type FrequenciaPagamento = "DIARIO" | "SEMANAL" | "MENSAL";
+export type FrequenciaPagamento =
+  | "DIARIO"
+  | "SEMANAL"
+  | "QUINZENAL"
+  | "MENSAL";
+
+export type TipoContrato = "FISICO" | "DIGITAL";
 
 export type CriarEmprestimoDTO = {
   valorEmprestado: number;
@@ -9,6 +15,7 @@ export type CriarEmprestimoDTO = {
   jurosCobrado: number;
   formaPagamento: string;
   frequenciaPagamento: FrequenciaPagamento;
+  tipoContrato: TipoContrato;
 };
 
 export const emprestimosService = {

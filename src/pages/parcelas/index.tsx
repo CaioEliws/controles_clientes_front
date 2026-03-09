@@ -13,7 +13,7 @@ import { useParcelasPage } from "@/hooks/useParcelasPage";
 
 export function Parcelas() {
   const vm = useParcelasPage();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,6 +52,7 @@ export function Parcelas() {
               onClearFilters={() => {
                 setSearchError(null);
                 vm.clearFilters();
+                setSearchParams({});
               }}
             />
 

@@ -12,6 +12,32 @@ type Props = {
   onQuit: (e: EmprestimoDetalhado) => void;
 };
 
+function formatFrequencia(value: string) {
+  switch (value) {
+    case "DIARIO":
+      return "Diário";
+    case "SEMANAL":
+      return "Semanal";
+    case "QUINZENAL":
+      return "Quinzenal";
+    case "MENSAL":
+      return "Mensal";
+    default:
+      return value;
+  }
+}
+
+function formatContrato(value: string) {
+  switch (value) {
+    case "FISICO":
+      return "Físico";
+    case "DIGITAL":
+      return "Digital";
+    default:
+      return value;
+  }
+}
+
 export function EmprestimosTableRow({
   emprestimo,
   canAct,
@@ -55,6 +81,14 @@ export function EmprestimosTableRow({
 
       <TableCell className="max-w-[120px] truncate font-medium text-slate-600">
         {emprestimo.formaPagamento}
+      </TableCell>
+
+      <TableCell className="whitespace-nowrap text-slate-600">
+        {formatFrequencia(emprestimo.frequenciaPagamento)}
+      </TableCell>
+
+      <TableCell className="whitespace-nowrap text-slate-600">
+        {formatContrato(emprestimo.tipoContrato)}
       </TableCell>
 
       <TableCell className="whitespace-nowrap font-semibold">

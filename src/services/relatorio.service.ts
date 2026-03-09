@@ -1,3 +1,4 @@
+import { apiClient } from "./apiClient";
 import type { Relatorio, Emprestimo, ParcelaResponse } from "@/types";
 
 function safeDate(value: string | Date | null | undefined): Date | null {
@@ -7,37 +8,40 @@ function safeDate(value: string | Date | null | undefined): Date | null {
 }
 
 export async function buscarRelatorioCliente(
-  API: string,
   clienteId: number
 ): Promise<Relatorio> {
-  const emprestimos: Emprestimo[] = await fetch(
-    `${API}/clientes/${clienteId}/emprestimos`
-  ).then((r) => r.json());
+  const emprestimos = await apiClient.get<Emprestimo[]>(
+    `/clientes/${clienteId}/emprestimos`
+  );
 
   const parcelasArrays = await Promise.all(
     emprestimos.map((emp) =>
-      fetch(`${API}/clientes/${clienteId}/emprestimos/${emp.id}/parcelas`).then(
-        (r) => r.json() as Promise<ParcelaResponse[]>
+      apiClient.get<ParcelaResponse[]>(
+        `/clientes/${clienteId}/emprestimos/${emp.id}/parcelas`
       )
     )
   );
 
   const parcelas = parcelasArrays.flat();
-
   const agora = new Date();
 
   return {
-    totalEmprestado: emprestimos.reduce((acc, e) => acc + e.valorEmprestado, 0),
-    totalPago: emprestimos.reduce((acc, e) => acc + e.valorRecebido, 0),
+    totalEmprestado: emprestimos.reduce(
+      (acc, e) => acc + (e.valorTotalEmprestimo ?? 0),
+      0
+    ),
+    totalPago: emprestimos.reduce(
+      (acc, e) => acc + (e.valorRecebido ?? 0),
+      0
+    ),
     totalAberto: emprestimos.reduce(
-      (acc, e) => acc + (e.valorAReceber - e.valorRecebido),
+      (acc, e) => acc + (e.valorAReceber ?? 0),
       0
     ),
     totalEmprestimos: emprestimos.length,
     totalParcelas: parcelas.length,
     parcelasPagas: parcelas.filter((p) => p.status === "PAGO").length,
     parcelasAtrasadas: parcelas.filter((p) => p.status === "ATRASADO").length,
-
     parcelasAVencer: parcelas.filter((p) => {
       if (p.status !== "PENDENTE") return false;
 

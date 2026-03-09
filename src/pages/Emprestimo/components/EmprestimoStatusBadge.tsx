@@ -12,10 +12,17 @@ export function EmprestimoStatusBadge({ status }: { status: string }) {
 
   const label =
     s === "EM_ABERTO"
-      ? "EM ABERTO"
+      ? "ABERTO"
       : s === "REFINANCIADO"
-      ? "REFINANCIADO"
+      ? "REFIN."
       : s;
 
-  return <Badge variant={variant}>{label}</Badge>;
+  return (
+    <Badge
+      variant={variant}
+      className="h-5 px-2 text-[11px] font-medium whitespace-nowrap"
+    >
+      {label}
+    </Badge>
+  );
 }

@@ -23,34 +23,9 @@ export interface Relatorio {
 export interface Emprestimo {
   id: number;
   valorEmprestado: number;
-  valorRecebido: number;
-  valorAReceber: number;
-}
-
-export interface EmprestimoDetalhado {
-  id: number;
-  nomeCliente: string;
-
-  dataEmprestimo: string;
-
-  formaPagamento: string;
-
-  valorEmprestado: number;
   valorTotalEmprestimo: number;
-  valorParcela: number;
   valorRecebido: number;
   valorAReceber: number;
-
-  inicioPagamento: string;
-  finalPagamento: string;
-
-  status: EmprestimoStatus | string;
-
-  quantidadeParcelas: number;
-
-  parcelasPagas: number;
-  parcelasPendentes: number;
-  parcelasAtrasadas: number;
 }
 
 export type StatusParcela =
@@ -67,4 +42,33 @@ export interface ParcelaResponse {
   valorPago?: number | string | null;
   dataVencimento: string | Date | null;
   status: StatusParcela;
+}
+
+export type FrequenciaPagamento =
+  | "DIARIO"
+  | "SEMANAL"
+  | "QUINZENAL"
+  | "MENSAL";
+
+export type TipoContrato = "FISICO" | "DIGITAL";
+
+export interface EmprestimoDetalhado {
+  id: number;
+  nomeCliente: string;
+  dataEmprestimo: string;
+  formaPagamento: string;
+  frequenciaPagamento: FrequenciaPagamento;
+  tipoContrato: TipoContrato;
+  valorEmprestado: number;
+  valorTotalEmprestimo: number;
+  valorParcela: number;
+  valorRecebido: number;
+  valorAReceber: number;
+  inicioPagamento: string;
+  finalPagamento: string;
+  status: EmprestimoStatus | string;
+  quantidadeParcelas: number;
+  parcelasPagas: number;
+  parcelasPendentes: number;
+  parcelasAtrasadas: number;
 }

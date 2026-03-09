@@ -11,18 +11,69 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Parcela {
-  cliente: string;
-  diasAtraso: number;
-  valor: number;
-}
+type Parcela = {
+  cliente?: string;
+  nomeCliente?: string;
+  diasAtraso?: number;
+  valor?: number;
+  valorParcela?: number | string | null;
+  dataVencimento?: string | Date | null;
+};
 
 interface Props {
   parcelas: Parcela[];
   page: number;
   onPrev: () => void;
   onNext: () => void;
-  loading?: boolean; // ✅ novo
+  loading?: boolean;
+}
+
+function safeDate(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function getDiasAtraso(parcela: Parcela) {
+  if (typeof parcela.diasAtraso === "number") return parcela.diasAtraso;
+
+  const vencimento = safeDate(parcela.dataVencimento);
+  if (!vencimento) return 0;
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const venc = new Date(vencimento);
+  venc.setHours(0, 0, 0, 0);
+
+  const diffMs = hoje.getTime() - venc.getTime();
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  return Math.max(diffDias, 0);
+}
+
+function getCliente(parcela: Parcela) {
+  return parcela.cliente || parcela.nomeCliente || "Cliente não informado";
+}
+
+function getValor(parcela: Parcela) {
+  if (typeof parcela.valor === "number") return parcela.valor;
+
+  if (typeof parcela.valorParcela === "number") return parcela.valorParcela;
+
+  if (typeof parcela.valorParcela === "string") {
+    const parsed = Number(
+      parcela.valorParcela
+        .replace("R$", "")
+        .replace(/\s/g, "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+    );
+
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
 }
 
 export function AtrasadasTable({
@@ -42,7 +93,8 @@ export function AtrasadasTable({
   const totalRegistros = parcelas.length;
   const totalPaginasCalculado = Math.ceil(totalRegistros / ITEMS_PER_PAGE);
 
-  const validPage = Number.isNaN(Number(page)) || Number(page) < 1 ? 1 : Number(page);
+  const validPage =
+    Number.isNaN(Number(page)) || Number(page) < 1 ? 1 : Number(page);
   const currentPage = Math.min(validPage, totalPaginasCalculado || 1);
 
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -51,9 +103,9 @@ export function AtrasadasTable({
   const parcelasPaginadas = parcelas.slice(startIndex, endIndex);
 
   return (
-    <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden">
+    <Card className="overflow-hidden rounded-xl border-slate-200 shadow-sm">
       <CardContent className="p-0">
-        <div className="px-8 py-6 border-b bg-slate-50">
+        <div className="border-b bg-slate-50 px-8 py-6">
           <h3 className="text-lg font-semibold text-red-600">
             Parcelas Atrasadas
           </h3>
@@ -77,38 +129,41 @@ export function AtrasadasTable({
                     <Skeleton className="h-4 w-[220px]" />
                   </TableCell>
                   <TableCell className="text-center">
-                    <Skeleton className="h-4 w-[40px] mx-auto" />
+                    <Skeleton className="mx-auto h-4 w-[40px]" />
                   </TableCell>
                   <TableCell className="text-center">
-                    <Skeleton className="h-4 w-[90px] mx-auto" />
+                    <Skeleton className="mx-auto h-4 w-[90px]" />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Skeleton className="h-6 w-[90px] ml-auto" />
+                    <Skeleton className="ml-auto h-6 w-[90px]" />
                   </TableCell>
                 </TableRow>
               ))
             ) : parcelasPaginadas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-16 text-slate-400">
+                <TableCell
+                  colSpan={4}
+                  className="py-16 text-center text-slate-400"
+                >
                   Nenhuma parcela encontrada para esta página.
                 </TableCell>
               </TableRow>
             ) : (
               parcelasPaginadas.map((parcela, index) => (
                 <TableRow
-                  key={`${parcela.cliente}-${index}`}
+                  key={`${getCliente(parcela)}-${index}`}
                   className="hover:bg-slate-50/50"
                 >
                   <TableCell className="font-semibold text-slate-700">
-                    {parcela.cliente}
+                    {getCliente(parcela)}
                   </TableCell>
 
                   <TableCell className="text-center font-medium text-red-600">
-                    {parcela.diasAtraso}
+                    {getDiasAtraso(parcela)}
                   </TableCell>
 
                   <TableCell className="text-center">
-                    {formatCurrency(parcela.valor)}
+                    {formatCurrency(getValor(parcela))}
                   </TableCell>
 
                   <TableCell className="text-right">
@@ -121,9 +176,10 @@ export function AtrasadasTable({
         </Table>
       </CardContent>
 
-      <CardFooter className="flex justify-between items-center px-8 py-4 bg-slate-50/50 border-t border-slate-100">
-        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-          Página {currentPage} de {totalPaginasCalculado || 1} — {totalRegistros} resultados
+      <CardFooter className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-8 py-4">
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+          Página {currentPage} de {totalPaginasCalculado || 1} —{" "}
+          {totalRegistros} resultados
         </span>
 
         <div className="flex gap-2">

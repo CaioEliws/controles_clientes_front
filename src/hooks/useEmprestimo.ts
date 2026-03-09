@@ -34,7 +34,14 @@ const schema = z.object({
 
   formaPagamento: z.string().min(1, "Selecione a forma"),
 
-  frequenciaPagamento: z.enum(["DIARIO", "SEMANAL", "MENSAL"]),
+  frequenciaPagamento: z.enum([
+    "DIARIO",
+    "SEMANAL",
+    "QUINZENAL",
+    "MENSAL",
+  ]),
+
+  tipoContrato: z.enum(["FISICO", "DIGITAL"]),
 });
 
 export type EmprestimoFormData = z.infer<typeof schema>;
@@ -50,6 +57,7 @@ export function useEmprestimo() {
       jurosCobrado: "",
       formaPagamento: "",
       frequenciaPagamento: "MENSAL",
+      tipoContrato: "FISICO",
     },
   });
 
@@ -60,6 +68,7 @@ export function useEmprestimo() {
       jurosCobrado: Number(data.jurosCobrado.replace(",", ".")),
       formaPagamento: data.formaPagamento,
       frequenciaPagamento: data.frequenciaPagamento,
+      tipoContrato: data.tipoContrato,
     };
 
     await emprestimosService.create(Number(data.clienteId), payload);
@@ -71,6 +80,7 @@ export function useEmprestimo() {
       jurosCobrado: "",
       formaPagamento: "",
       frequenciaPagamento: "MENSAL",
+      tipoContrato: "FISICO",
     });
   }
 

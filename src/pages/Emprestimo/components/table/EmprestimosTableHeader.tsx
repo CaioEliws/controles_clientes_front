@@ -13,26 +13,30 @@ export function EmprestimosTableHeader({ selectedClienteName }: Props) {
         <TableHead className="whitespace-nowrap">
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 hover:text-slate-900 transition-colors">
+              <button className="flex items-center gap-2 transition-colors hover:text-slate-900">
                 Cliente
                 <Filter
-                  className={`w-3.5 h-3.5 ${
+                  className={`h-3.5 w-3.5 ${
                     selectedClienteName ? "text-blue-600" : "text-slate-400"
                   }`}
                 />
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-2" align="start">
-              <p className="text-xs font-bold text-slate-500 px-2 py-1 uppercase tracking-wider">
+              <p className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-500">
                 Selecionado
               </p>
-              <p className="text-sm px-2 pb-1">{selectedClienteName ?? "Nenhum"}</p>
+              <p className="px-2 pb-1 text-sm">
+                {selectedClienteName ?? "Nenhum"}
+              </p>
             </PopoverContent>
           </Popover>
         </TableHead>
 
         <TableHead className="whitespace-nowrap">Data</TableHead>
         <TableHead className="whitespace-nowrap">Forma</TableHead>
+        <TableHead className="whitespace-nowrap">Frequência</TableHead>
+        <TableHead className="whitespace-nowrap">Contrato</TableHead>
         <TableHead className="whitespace-nowrap">Emprestado</TableHead>
         <TableHead className="whitespace-nowrap">A receber</TableHead>
         <TableHead className="whitespace-nowrap">Parcela</TableHead>

@@ -12,10 +12,11 @@ type Props = {
   emprestimos: EmprestimoDetalhado[];
   selectedClienteName?: string | null;
   selectedClienteId?: number | null;
-
   onOpenParcelas: (payload: { emprestimoId: number; cliente: string }) => void;
   onRefetch?: () => void;
 };
+
+const TABLE_COLS = 13;
 
 export function EmprestimosTable({
   loading,
@@ -31,22 +32,30 @@ export function EmprestimosTable({
 
   return (
     <>
-      <Card className="rounded-xl shadow-sm border-slate-200 overflow-hidden mt-6">
+      <Card className="mt-6 overflow-hidden rounded-xl border-slate-200 shadow-sm">
         <CardContent className="p-0">
-          <div className="w-full overflow-x-hidden">
-            <Table className="w-full table-fixed">
-              <EmprestimosTableHeader selectedClienteName={selectedClienteName} />
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[1500px] table-fixed">
+              <EmprestimosTableHeader
+                selectedClienteName={selectedClienteName}
+              />
 
               <TableBody>
                 {loading ? (
                   <tr>
-                    <td colSpan={11} className="text-center py-20 text-slate-400">
+                    <td
+                      colSpan={TABLE_COLS}
+                      className="py-20 text-center text-slate-400"
+                    >
                       Carregando dados...
                     </td>
                   </tr>
                 ) : emprestimos.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="text-center py-20 text-slate-400">
+                    <td
+                      colSpan={TABLE_COLS}
+                      className="py-20 text-center text-slate-400"
+                    >
                       Nenhum empréstimo encontrado.
                     </td>
                   </tr>
@@ -71,23 +80,33 @@ export function EmprestimosTable({
 
       <ConfirmActionDialog
         open={actions.isOpen}
-        onOpenChange={(open) => (open ? null : actions.close())}
-        title={actions.actionType === "REFINANCIAR" ? "Refinanciar empréstimo" : "Quitar empréstimo"}
+        onOpenChange={(open) => {
+          if (!open) actions.close();
+        }}
+        title={
+          actions.actionType === "REFINANCIAR"
+            ? "Refinanciar empréstimo"
+            : "Quitar empréstimo"
+        }
         description={
           actions.actionType === "REFINANCIAR" ? (
             <>
-              Isso vai marcar todas as parcelas em aberto como pagas e alterar o status para{" "}
-              <b>REFINANCIADO</b>.
+              Isso vai marcar todas as parcelas em aberto como pagas e alterar o
+              status para <b>REFINANCIADO</b>.
             </>
           ) : (
             <>
-              Isso vai marcar todas as parcelas restantes como pagas e alterar o status para{" "}
-              <b>QUITADO</b>.
+              Isso vai marcar todas as parcelas restantes como pagas e alterar o
+              status para <b>QUITADO</b>.
             </>
           )
         }
-        confirmText={actions.actionType === "REFINANCIAR" ? "Confirmar" : "Confirmar"}
-        loading={actions.actionType === "REFINANCIAR" ? actions.loadingRefinance : actions.loadingQuit}
+        confirmText="Confirmar"
+        loading={
+          actions.actionType === "REFINANCIAR"
+            ? actions.loadingRefinance
+            : actions.loadingQuit
+        }
         onConfirm={actions.confirm}
       />
     </>
