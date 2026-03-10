@@ -134,6 +134,7 @@ export function ParcelasTable({
                         </p>
 
                         <button
+                          type="button"
                           className="w-full rounded-md p-2 text-left text-sm hover:bg-slate-50"
                           onClick={() => setSortOrder("desc")}
                         >
@@ -142,6 +143,7 @@ export function ParcelasTable({
                         </button>
 
                         <button
+                          type="button"
                           className="w-full rounded-md p-2 text-left text-sm hover:bg-slate-50"
                           onClick={() => setSortOrder("asc")}
                         >

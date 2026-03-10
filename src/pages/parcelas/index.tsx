@@ -7,7 +7,7 @@ import { ParcelasStats } from "@/pages/Parcelas/components/ParcelasStats";
 import { ParcelasTable } from "@/pages/Parcelas/components/ParcelasTable";
 import { ParcelasPagination } from "@/pages/Parcelas/components/ParcelasPagination";
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
-import { AlterarParcelaDialog } from "@/pages/Parcelas/components/AlterarParcelaDialog";
+import { AlterarDataParcelaDialog } from "@/pages/Parcelas/components/AlterarDataParcelaDialog";
 import { ParcelasSkeleton } from "@/pages/Parcelas/components/ParcelasSkeleton";
 import { useParcelasPage } from "@/hooks/useParcelasPage";
 
@@ -108,13 +108,12 @@ export function Parcelas() {
       )}
 
       {vm.selected && (
-        <AlterarParcelaDialog
+        <AlterarDataParcelaDialog
           open={vm.alterarDialogOpen}
           onOpenChange={vm.setAlterarDialogOpen}
           idEmprestimo={vm.selected.idEmprestimo}
           numeroParcela={vm.selected.numeroParcela}
           dataAtual={vm.selected.dataVencimento}
-          valorAtual={vm.selected.valorRestante}
           onSuccess={vm.fetchParcelas}
         />
       )}
