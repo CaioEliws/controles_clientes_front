@@ -23,13 +23,13 @@ export function Clientes() {
     totalEmprestimos,
     fetchClientes,
     deletarCliente,
-    API,
   } = useClientes();
 
   const [search, setSearch] = useState("");
 
   const filtrados = useMemo(() => {
     const termo = search.toLowerCase();
+
     return clientes.filter((c) => {
       return (
         c.nome.toLowerCase().includes(termo) ||
@@ -130,7 +130,6 @@ export function Clientes() {
                           <ModalRelatorio
                             clienteId={cliente.id}
                             nomeCliente={cliente.nome}
-                            API={API}
                           />
                           <Button
                             variant="destructive"

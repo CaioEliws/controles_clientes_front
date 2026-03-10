@@ -114,6 +114,7 @@ export function Parcelas() {
           idEmprestimo={vm.selected.idEmprestimo}
           numeroParcela={vm.selected.numeroParcela}
           dataAtual={vm.selected.dataVencimento}
+          valorAtual={vm.selected.valorRestante}
           onSuccess={vm.fetchParcelas}
         />
       )}
