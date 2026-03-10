@@ -1,50 +1,28 @@
-import { TableHead, TableRow, TableHeader } from "@/components/ui/table";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Filter } from "lucide-react";
+import {
+  TableHead,
+  TableRow,
+  TableHeader,
+} from "@/components/ui/table";
 
-type Props = {
-  selectedClienteName?: string | null;
-};
+const headClassName =
+  "whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:px-4";
 
-export function EmprestimosTableHeader({ selectedClienteName }: Props) {
+export function EmprestimosTableHeader() {
   return (
-    <TableHeader className="bg-slate-50">
-      <TableRow>
-        <TableHead className="whitespace-nowrap">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 transition-colors hover:text-slate-900">
-                Cliente
-                <Filter
-                  className={`h-3.5 w-3.5 ${
-                    selectedClienteName ? "text-blue-600" : "text-slate-400"
-                  }`}
-                />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="start">
-              <p className="px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-500">
-                Selecionado
-              </p>
-              <p className="px-2 pb-1 text-sm">
-                {selectedClienteName ?? "Nenhum"}
-              </p>
-            </PopoverContent>
-          </Popover>
-        </TableHead>
-
-        <TableHead className="whitespace-nowrap">Data</TableHead>
-        <TableHead className="whitespace-nowrap">Forma</TableHead>
-        <TableHead className="whitespace-nowrap">Frequência</TableHead>
-        <TableHead className="whitespace-nowrap">Contrato</TableHead>
-        <TableHead className="whitespace-nowrap">Emprestado</TableHead>
-        <TableHead className="whitespace-nowrap">A receber</TableHead>
-        <TableHead className="whitespace-nowrap">Parcela</TableHead>
-        <TableHead className="whitespace-nowrap">Recebido</TableHead>
-        <TableHead className="whitespace-nowrap">Total</TableHead>
-        <TableHead className="whitespace-nowrap">Início</TableHead>
-        <TableHead className="whitespace-nowrap">Final</TableHead>
-        <TableHead className="whitespace-nowrap">Status</TableHead>
+    <TableHeader className="bg-slate-50/90">
+      <TableRow className="border-b border-slate-200 hover:bg-slate-50/90">
+        <TableHead className={headClassName}>Data</TableHead>
+        <TableHead className={headClassName}>Forma</TableHead>
+        <TableHead className={headClassName}>Frequência</TableHead>
+        <TableHead className={headClassName}>Contrato</TableHead>
+        <TableHead className={headClassName}>Emprestado</TableHead>
+        <TableHead className={headClassName}>A receber</TableHead>
+        <TableHead className={headClassName}>Parcela</TableHead>
+        <TableHead className={headClassName}>Recebido</TableHead>
+        <TableHead className={headClassName}>Total</TableHead>
+        <TableHead className={headClassName}>Início</TableHead>
+        <TableHead className={headClassName}>Final</TableHead>
+        <TableHead className={headClassName}>Status</TableHead>
       </TableRow>
     </TableHeader>
   );

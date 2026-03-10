@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { emprestimosService } from "@/services/emprestimos.service";
+import { apiClient } from "@/services/apiClient";
 import { clientesService } from "@/services/clientes.service";
-import type { Cliente, EmprestimoDetalhado } from "@/types";
+import { emprestimosService } from "@/services/emprestimos.service";
+import type {
+  Cliente,
+  EmprestimoDetalhado,
+  ParcelaResponse,
+  StatusParcela,
+} from "@/types";
+import { formatCurrency } from "@/utils/format";
 import { z } from "zod";
 
 const safeSearchRegex = /^[\p{L}\p{N}\s.'()-]*$/u;
@@ -20,37 +26,47 @@ const normalize = (s?: string | null) =>
 
 const safeLower = (s?: string | null) => (s ?? "").trim().toLowerCase();
 
-const safeDateMs = (s: string): number => {
-  const ms = new Date(s).getTime();
+const safeDateMs = (value?: string | Date | null): number => {
+  if (!value) return 0;
+  const ms = new Date(value).getTime();
   return Number.isFinite(ms) ? ms : 0;
 };
 
-type StatusFilter = "ALL" | "EM_ABERTO" | "REFINANCIADO" | "QUITADO";
-
-const statusPriority: Record<string, number> = {
-  EM_ABERTO: 0,
-  REFINANCIADO: 1,
-  QUITADO: 2,
+type RelatorioEmprestimoOption = {
+  id: number;
+  label: string;
 };
 
-export function useEmprestimosPage() {
-  const [emprestimos, setEmprestimos] = useState<EmprestimoDetalhado[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
+const PARCELA_STATUSES: StatusParcela[] = [
+  "PENDENTE",
+  "PARCIAL",
+  "PAGO",
+  "ATRASADO",
+];
 
-  const [loading, setLoading] = useState(false);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedStatus, setSelectedStatus] =
-    useState<StatusFilter>("ALL");
+export function useRelatorioParcelasPage() {
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [emprestimosRaw, setEmprestimosRaw] = useState<EmprestimoDetalhado[]>([]);
+  const [parcelas, setParcelas] = useState<ParcelaResponse[]>([]);
+
+  const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
+  const [selectedEmprestimoId, setSelectedEmprestimoId] = useState<number | null>(
+    null
+  );
+
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [loadingEmprestimos, setLoadingEmprestimos] = useState(false);
+  const [loadingParcelas, setLoadingParcelas] = useState(false);
 
   const [clientSearch, setClientSearch] = useState("");
   const [clientSearchError, setClientSearchError] = useState<string | null>(null);
 
   const debounceRef = useRef<number | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     let alive = true;
+
+    setLoadingClientes(true);
 
     clientesService
       .getAll()
@@ -61,6 +77,10 @@ export function useEmprestimosPage() {
       .catch(() => {
         if (!alive) return;
         setClientes([]);
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoadingClientes(false);
       });
 
     return () => {
@@ -73,25 +93,58 @@ export function useEmprestimosPage() {
   }, []);
 
   const fetchEmprestimos = useCallback(async (clienteId: number) => {
-    setLoading(true);
+    setLoadingEmprestimos(true);
 
     try {
       const data = await emprestimosService.getByCliente(clienteId);
-      setEmprestimos(Array.isArray(data) ? data : []);
+      setEmprestimosRaw(Array.isArray(data) ? data : []);
     } catch {
-      setEmprestimos([]);
+      setEmprestimosRaw([]);
     } finally {
-      setLoading(false);
+      setLoadingEmprestimos(false);
+    }
+  }, []);
+
+  const fetchParcelasByEmprestimo = useCallback(async (emprestimoId: number) => {
+    setLoadingParcelas(true);
+
+    try {
+      const results = await Promise.all(
+        PARCELA_STATUSES.map((status) =>
+          apiClient.get<ParcelaResponse[]>(`/parcelas?status=${status}`)
+        )
+      );
+
+      const merged = results.flat();
+
+      const filtered = merged
+        .filter((parcela) => parcela.idEmprestimo === emprestimoId)
+        .sort((a, b) => {
+          if (a.status === "PAGO" && b.status !== "PAGO") return 1;
+          if (a.status !== "PAGO" && b.status === "PAGO") return -1;
+
+          return safeDateMs(a.dataVencimento) - safeDateMs(b.dataVencimento);
+        });
+
+      setParcelas(filtered);
+    } catch (error) {
+      console.error("Erro ao buscar parcelas do empréstimo:", error);
+      setParcelas([]);
+    } finally {
+      setLoadingParcelas(false);
     }
   }, []);
 
   const handleSelectCliente = useCallback(
     (id: number | null) => {
       setSelectedCliente(id);
-      setEmprestimos([]);
+      setSelectedEmprestimoId(null);
+      setEmprestimosRaw([]);
+      setParcelas([]);
 
       if (!id) {
-        setLoading(false);
+        setLoadingEmprestimos(false);
+        setLoadingParcelas(false);
         return;
       }
 
@@ -134,57 +187,24 @@ export function useEmprestimosPage() {
       .slice(0, 8);
   }, [clientes, clientSearch]);
 
-  const emprestimosOrdenados = useMemo(() => {
-    return [...emprestimos].sort((a, b) => {
-      const priorityA = statusPriority[a.status] ?? 999;
-      const priorityB = statusPriority[b.status] ?? 999;
-
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-
-      const da = safeDateMs(a.dataEmprestimo);
-      const db = safeDateMs(b.dataEmprestimo);
-
-      return sortOrder === "asc" ? da - db : db - da;
-    });
-  }, [emprestimos, sortOrder]);
-
-  const emprestimosFiltrados = useMemo(() => {
-    let lista = emprestimosOrdenados;
-
-    const termo = safeLower(clientSearch);
-    if (termo) {
-      lista = lista.filter((e) => safeLower(e.nomeCliente).includes(termo));
-    }
-
-    if (selectedStatus !== "ALL") {
-      lista = lista.filter((e) => e.status === selectedStatus);
-    }
-
-    return lista;
-  }, [emprestimosOrdenados, clientSearch, selectedStatus]);
+  const emprestimos = useMemo<RelatorioEmprestimoOption[]>(() => {
+  return [...emprestimosRaw]
+    .sort((a, b) => safeDateMs(b.dataEmprestimo) - safeDateMs(a.dataEmprestimo))
+    .map((item) => ({
+      id: item.id,
+      label: `${formatCurrency(item.valorEmprestado)} - ${item.status}`,
+    }));
+}, [emprestimosRaw]);
 
   const selectedClienteName = useMemo(() => {
     if (!selectedCliente) return null;
     return clientes.find((c) => c.id === selectedCliente)?.nome ?? null;
   }, [clientes, selectedCliente]);
 
-  const openParcelas = useCallback(
-    ({ emprestimoId, cliente }: { emprestimoId: number; cliente: string }) => {
-      const params = new URLSearchParams();
-      params.set("cliente", cliente);
-      params.set("emprestimoId", String(emprestimoId));
-      navigate(`/parcelas?${params.toString()}`);
-    },
-    [navigate]
-  );
-
-  const refetch = useCallback(() => {
-    if (selectedCliente) {
-      fetchEmprestimos(selectedCliente);
-    }
-  }, [fetchEmprestimos, selectedCliente]);
+  const selectedEmprestimoLabel = useMemo(() => {
+    if (!selectedEmprestimoId) return null;
+    return emprestimos.find((e) => e.id === selectedEmprestimoId)?.label ?? null;
+  }, [emprestimos, selectedEmprestimoId]);
 
   const tryAutoSelect = useCallback(
     (value: string) => {
@@ -237,14 +257,24 @@ export function useEmprestimosPage() {
     [tryAutoSelect]
   );
 
-  const clearSearch = useCallback(() => {
+  useEffect(() => {
+    if (!selectedEmprestimoId) {
+      setParcelas([]);
+      return;
+    }
+
+    fetchParcelasByEmprestimo(selectedEmprestimoId);
+  }, [selectedEmprestimoId, fetchParcelasByEmprestimo]);
+
+  const clearFilters = useCallback(() => {
     setClientSearch("");
     setClientSearchError(null);
     setSelectedCliente(null);
-    setSelectedStatus("ALL");
-    setSortOrder("desc");
-    setEmprestimos([]);
-    setLoading(false);
+    setSelectedEmprestimoId(null);
+    setEmprestimosRaw([]);
+    setParcelas([]);
+    setLoadingEmprestimos(false);
+    setLoadingParcelas(false);
 
     if (debounceRef.current) {
       window.clearTimeout(debounceRef.current);
@@ -254,29 +284,28 @@ export function useEmprestimosPage() {
   return {
     clientes,
     clientesFiltrados,
-
-    emprestimos: emprestimosFiltrados,
-    loading,
-
-    sortOrder,
-    setSortOrder,
-
-    selectedStatus,
-    setSelectedStatus,
-
-    selectedCliente,
-    selectedClienteName,
-    handleSelectCliente,
-
     suggestions,
-    selectCliente,
-
-    openParcelas,
-    refetch,
 
     clientSearch,
     clientSearchError,
     handleClientSearchChange,
-    clearSearch,
+
+    selectedClienteId: selectedCliente,
+    selectedClienteName,
+    handleSelectCliente,
+    selectCliente,
+
+    emprestimos,
+    selectedEmprestimoId,
+    selectedEmprestimoLabel,
+    setSelectedEmprestimoId,
+
+    parcelas,
+
+    loadingClientes,
+    loadingEmprestimos,
+    loadingParcelas,
+
+    clearFilters,
   };
 }

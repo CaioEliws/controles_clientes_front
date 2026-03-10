@@ -155,7 +155,12 @@ export function AtrasadasTable({
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <Badge variant="destructive">ATRASADO</Badge>
+                      <Badge
+                        variant="outline"
+                        className="border-red-200 bg-red-50 text-red-700 hover:bg-red-50"
+                      >
+                        ATRASADO
+                      </Badge>
                     </TableCell>
 
                     <TableCell className="text-right">

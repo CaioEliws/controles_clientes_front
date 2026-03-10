@@ -15,12 +15,14 @@ import { Label } from "@/components/ui/label";
 import { PlusCircle } from "lucide-react";
 
 import { useEmprestimo } from "@/hooks/useEmprestimo";
+import { cn } from "@/lib/utils";
 
 type Props = {
   disabled?: boolean;
   selectedClienteId: number | null;
   selectedClienteName?: string | null;
   onCreated?: () => void;
+  triggerClassName?: string;
 };
 
 export function NovoEmprestimoDialog({
@@ -28,6 +30,7 @@ export function NovoEmprestimoDialog({
   selectedClienteId,
   selectedClienteName,
   onCreated,
+  triggerClassName,
 }: Props) {
   const form = useEmprestimo();
   const [open, setOpen] = useState(false);
@@ -64,7 +67,10 @@ export function NovoEmprestimoDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button disabled={disabled} className="gap-2">
+        <Button
+          disabled={disabled}
+          className={cn("gap-2", triggerClassName)}
+        >
           <PlusCircle className="h-4 w-4" />
           Criar Empréstimo
         </Button>

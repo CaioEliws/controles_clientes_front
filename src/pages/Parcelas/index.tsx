@@ -4,7 +4,7 @@ import { parcelasSearchSchema } from "@/schemas/parcelas.schema";
 
 import { ParcelasHeader } from "@/pages/Parcelas/components/ParcelasHeader";
 import { ParcelasStats } from "@/pages/Parcelas/components/ParcelasStats";
-import { ParcelasTable } from "@/pages/Parcelas/components/ParcelasTable";
+import { ParcelasTable } from "@/pages/Parcelas/components/table/ParcelasTable";
 import { ParcelasPagination } from "@/pages/Parcelas/components/ParcelasPagination";
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
 import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";

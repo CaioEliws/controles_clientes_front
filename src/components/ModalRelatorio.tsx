@@ -22,10 +22,12 @@ import { buscarRelatorioCliente } from "@/services/relatorio.service";
 import { formatCurrency } from "@/utils/format";
 import { StatSmallCard, type CardVariant } from "@/components/StatSmallCard";
 import type { Relatorio } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface Props {
   clienteId: number;
   nomeCliente: string;
+  className?: string;
 }
 
 interface CardItem {
@@ -36,7 +38,11 @@ interface CardItem {
   span?: boolean;
 }
 
-export function ModalRelatorio({ clienteId, nomeCliente }: Props) {
+export function ModalRelatorio({
+  clienteId,
+  nomeCliente,
+  className,
+}: Props) {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -132,7 +138,7 @@ export function ModalRelatorio({ clienteId, nomeCliente }: Props) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="gap-2">
+        <Button variant="outline" className={cn("gap-2", className)}>
           <FiBarChart2 />
           Relatório
         </Button>

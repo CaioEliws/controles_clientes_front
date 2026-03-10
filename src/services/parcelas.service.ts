@@ -11,6 +11,9 @@ export const parcelasService = {
   getMesAtual: () =>
     apiClient.get<ParcelaResponse[]>("/parcelas/mes-atual"),
 
+  getByEmprestimo: (idEmprestimo: number) =>
+    apiClient.get<ParcelaResponse[]>(`/parcelas/emprestimo/${idEmprestimo}`),
+
   pagar: (idEmprestimo: number, numeroParcela: number) =>
     apiClient.post<void>("/parcelas/pagar", {
       idEmprestimo,

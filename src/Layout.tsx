@@ -7,6 +7,7 @@ import {
   FiTrendingUp,
   FiBarChart2,
   FiDownloadCloud,
+  FiFileText,
 } from "react-icons/fi";
 
 export function Layout() {
@@ -16,6 +17,11 @@ export function Layout() {
     { label: "Parcelas", path: "/parcelas", icon: <FiLayers /> },
     { label: "Empréstimo", path: "/emprestimo", icon: <FiTrendingUp /> },
     { label: "Simulação", path: "/simulacao", icon: <FiBarChart2 /> },
+    {
+      label: "Relatório Parcelas",
+      path: "/relatorio-parcelas",
+      icon: <FiFileText />,
+    },
     { label: "Backup / Import", path: "/backup", icon: <FiDownloadCloud /> },
   ];
 
@@ -23,7 +29,7 @@ export function Layout() {
     <div className="flex min-h-screen overflow-hidden">
       <Sidebar userName="Meu Dashboard" menuItems={menuItems} />
 
-      <main className="flex-1 min-w-0 overflow-x-hidden">
+      <main className="min-w-0 flex-1 overflow-x-hidden">
         <Outlet />
       </main>
     </div>
