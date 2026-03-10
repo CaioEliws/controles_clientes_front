@@ -17,7 +17,7 @@ export function Sidebar({ userName, menuItems }: SidebarProps) {
   const location = useLocation();
 
   return (
-    <aside className="w-64 min-h-screen bg-background border-r flex flex-col">
+    <aside className="w-64 shrink-0 min-h-screen bg-background border-r flex flex-col">
             <div className="h-32 flex items-center justify-center border-b px-6">
         <h1 className="text-2xl font-bold tracking-tight">
           {userName}

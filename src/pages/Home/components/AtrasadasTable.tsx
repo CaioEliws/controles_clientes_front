@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,21 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Parcela = {
-  cliente?: string;
-  nomeCliente?: string;
-  diasAtraso?: number;
-  valor?: number;
-  valorParcela?: number | string | null;
-  dataVencimento?: string | Date | null;
-};
+import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton";
+import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
+import type { ParcelaTable } from "@/mappers/parcela.mapper";
 
 interface Props {
-  parcelas: Parcela[];
+  parcelas: ParcelaTable[];
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onRefresh: () => Promise<void>;
   loading?: boolean;
 }
 
@@ -34,9 +30,7 @@ function safeDate(value: string | Date | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function getDiasAtraso(parcela: Parcela) {
-  if (typeof parcela.diasAtraso === "number") return parcela.diasAtraso;
-
+function getDiasAtraso(parcela: ParcelaTable) {
   const vencimento = safeDate(parcela.dataVencimento);
   if (!vencimento) return 0;
 
@@ -52,27 +46,12 @@ function getDiasAtraso(parcela: Parcela) {
   return Math.max(diffDias, 0);
 }
 
-function getCliente(parcela: Parcela) {
-  return parcela.cliente || parcela.nomeCliente || "Cliente não informado";
+function getCliente(parcela: ParcelaTable) {
+  return parcela.cliente || "Cliente não informado";
 }
 
-function getValor(parcela: Parcela) {
+function getValor(parcela: ParcelaTable) {
   if (typeof parcela.valor === "number") return parcela.valor;
-
-  if (typeof parcela.valorParcela === "number") return parcela.valorParcela;
-
-  if (typeof parcela.valorParcela === "string") {
-    const parsed = Number(
-      parcela.valorParcela
-        .replace("R$", "")
-        .replace(/\s/g, "")
-        .replace(/\./g, "")
-        .replace(",", ".")
-    );
-
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
   return 0;
 }
 
@@ -81,8 +60,12 @@ export function AtrasadasTable({
   page,
   onPrev,
   onNext,
+  onRefresh,
   loading = false,
 }: Props) {
+  const [selected, setSelected] = useState<ParcelaTable | null>(null);
+  const [alterarOpen, setAlterarOpen] = useState(false);
+
   const formatCurrency = (val: number) =>
     (val ?? 0).toLocaleString("pt-BR", {
       style: "currency",
@@ -103,105 +86,134 @@ export function AtrasadasTable({
   const parcelasPaginadas = parcelas.slice(startIndex, endIndex);
 
   return (
-    <Card className="overflow-hidden rounded-xl border-slate-200 shadow-sm">
-      <CardContent className="p-0">
-        <div className="border-b bg-slate-50 px-8 py-6">
-          <h3 className="text-lg font-semibold text-red-600">
-            Parcelas Atrasadas
-          </h3>
-        </div>
+    <>
+      <Card className="overflow-hidden rounded-xl border-slate-200 shadow-sm">
+        <CardContent className="p-0">
+          <div className="border-b bg-slate-50 px-8 py-6">
+            <h3 className="text-lg font-semibold text-red-600">
+              Parcelas Atrasadas
+            </h3>
+          </div>
 
-        <Table>
-          <TableHeader className="bg-slate-50">
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="text-center">Dias</TableHead>
-              <TableHead className="text-center">Valor</TableHead>
-              <TableHead className="text-right">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <Skeleton className="h-4 w-[220px]" />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Skeleton className="mx-auto h-4 w-[40px]" />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Skeleton className="mx-auto h-4 w-[90px]" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Skeleton className="ml-auto h-6 w-[90px]" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : parcelasPaginadas.length === 0 ? (
+          <Table>
+            <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="py-16 text-center text-slate-400"
-                >
-                  Nenhuma parcela encontrada para esta página.
-                </TableCell>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="text-center">Dias</TableHead>
+                <TableHead className="text-center">Valor</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ) : (
-              parcelasPaginadas.map((parcela, index) => (
-                <TableRow
-                  key={`${getCliente(parcela)}-${index}`}
-                  className="hover:bg-slate-50/50"
-                >
-                  <TableCell className="font-semibold text-slate-700">
-                    {getCliente(parcela)}
-                  </TableCell>
+            </TableHeader>
 
-                  <TableCell className="text-center font-medium text-red-600">
-                    {getDiasAtraso(parcela)}
-                  </TableCell>
-
-                  <TableCell className="text-center">
-                    {formatCurrency(getValor(parcela))}
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    <Badge variant="destructive">ATRASADO</Badge>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-[220px]" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-4 w-[40px]" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-4 w-[90px]" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-6 w-[90px]" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-8 w-10" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : parcelasPaginadas.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="py-16 text-center text-slate-400"
+                  >
+                    Nenhuma parcela encontrada para esta página.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
+              ) : (
+                parcelasPaginadas.map((parcela) => (
+                  <TableRow
+                    key={`${parcela.idEmprestimo}-${parcela.numeroParcela}`}
+                    className="hover:bg-slate-50/50"
+                  >
+                    <TableCell className="font-semibold text-slate-700">
+                      {getCliente(parcela)}
+                    </TableCell>
 
-      <CardFooter className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-8 py-4">
-        <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-          Página {currentPage} de {totalPaginasCalculado || 1} —{" "}
-          {totalRegistros} resultados
-        </span>
+                    <TableCell className="text-center font-medium text-red-600">
+                      {getDiasAtraso(parcela)}
+                    </TableCell>
 
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={loading || currentPage <= 1}
-            onClick={onPrev}
-          >
-            Anterior
-          </Button>
+                    <TableCell className="text-center">
+                      {formatCurrency(getValor(parcela))}
+                    </TableCell>
 
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={loading || currentPage >= totalPaginasCalculado}
-            onClick={onNext}
-          >
-            Próxima
-          </Button>
-        </div>
-      </CardFooter>
-    </Card>
+                    <TableCell className="text-right">
+                      <Badge variant="destructive">ATRASADO</Badge>
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <AlterarParcelaButton
+                          onClick={() => {
+                            setSelected(parcela);
+                            setAlterarOpen(true);
+                          }}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+
+        <CardFooter className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-8 py-4">
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+            Página {currentPage} de {totalPaginasCalculado || 1} —{" "}
+            {totalRegistros} resultados
+          </span>
+
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={loading || currentPage <= 1}
+              onClick={onPrev}
+            >
+              Anterior
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={loading || currentPage >= totalPaginasCalculado}
+              onClick={onNext}
+            >
+              Próxima
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
+
+      {selected && (
+        <AlterarParcelaDialog
+          open={alterarOpen}
+          onOpenChange={setAlterarOpen}
+          idEmprestimo={selected.idEmprestimo}
+          numeroParcela={selected.numeroParcela}
+          dataAtual={selected.dataVencimento}
+          valorAtual={getValor(selected)}
+          onSuccess={onRefresh}
+        />
+      )}
+    </>
   );
 }

@@ -41,6 +41,7 @@ export function Home() {
             loading={loading}
             parcelas={atrasadas}
             page={pageAtrasadas}
+            onRefresh={refresh}
             onNext={() => setPageAtrasadas((prev) => prev + 1)}
             onPrev={() => setPageAtrasadas((prev) => Math.max(1, prev - 1))}
           />

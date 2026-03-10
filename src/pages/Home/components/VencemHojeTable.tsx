@@ -11,7 +11,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
-import { AlterarParcelaDialog } from "@/pages/Parcelas/components/AlterarParcelaDialog";
+import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
 
 import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
 import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton";

@@ -13,9 +13,17 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAlterarParcela } from "@/hooks/useAlterarParcela";
 import { useEffect, useRef } from "react";
+import { formatCurrency, parseCurrency } from "@/utils/format";
 
 const schema = z.object({
   novaData: z.string().min(1, "Data obrigatória"),
+  novoValor: z
+    .string()
+    .min(1, "Valor obrigatório")
+    .refine(
+      (value) => parseCurrency(value) > 0,
+      "Valor deve ser maior que zero"
+    ),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -30,7 +38,7 @@ interface Props {
   onSuccess?: () => Promise<void> | void;
 }
 
-export function AlterarDataParcelaDialog({
+export function AlterarParcelaDialog({
   open,
   onOpenChange,
   idEmprestimo,
@@ -46,21 +54,30 @@ export function AlterarDataParcelaDialog({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       novaData: dataAtual,
+      novoValor: formatCurrency(valorAtual),
     },
   });
 
   useEffect(() => {
     if (open) {
-      reset({ novaData: dataAtual });
+      reset({
+        novaData: dataAtual,
+        novoValor: formatCurrency(valorAtual),
+      });
     }
-  }, [open, dataAtual, reset]);
+  }, [open, dataAtual, valorAtual, reset]);
 
-  const { ref: registerRef, ...restRegister } = register("novaData");
+  const { ref: registerDataRef, ...restDataRegister } = register("novaData");
+  const valorRegistrado = register("novoValor");
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const valorAtualInput = watch("novoValor");
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -68,7 +85,7 @@ export function AlterarDataParcelaDialog({
         idEmprestimo,
         numeroParcela,
         data.novaData,
-        valorAtual
+        parseCurrency(data.novoValor)
       );
 
       await onSuccess?.();
@@ -80,13 +97,11 @@ export function AlterarDataParcelaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl bg-white border-none">
+      <DialogContent className="sm:max-w-md rounded-2xl border-none bg-white">
         <DialogHeader>
-          <DialogTitle>
-            Alterar Data da Parcela #{numeroParcela}
-          </DialogTitle>
+          <DialogTitle>Alterar Parcela #{numeroParcela}</DialogTitle>
           <DialogDescription>
-            Escolha a nova data de vencimento da parcela.
+            Escolha a nova data de vencimento e o novo valor da parcela.
           </DialogDescription>
         </DialogHeader>
 
@@ -99,12 +114,12 @@ export function AlterarDataParcelaDialog({
             <div className="relative">
               <Input
                 type="date"
-                {...restRegister}
+                {...restDataRegister}
                 ref={(el) => {
-                  registerRef(el);
+                  registerDataRef(el);
                   inputRef.current = el;
                 }}
-                className="text-lg font-medium pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0"
+                className="pr-12 text-lg font-medium [&::-webkit-calendar-picker-indicator]:opacity-0"
               />
 
               <button
@@ -123,13 +138,43 @@ export function AlterarDataParcelaDialog({
             </div>
 
             {errors.novaData && (
-              <p className="text-xs text-red-600 font-bold">
+              <p className="text-xs font-bold text-red-600">
                 {errors.novaData.message}
               </p>
             )}
           </div>
 
-          <DialogFooter className="sm:justify-end gap-2">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">
+              Novo Valor
+            </label>
+
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={valorAtualInput}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "");
+                const numericValue = Number(raw) / 100;
+
+                setValue("novoValor", formatCurrency(numericValue), {
+                  shouldValidate: true,
+                });
+              }}
+              onBlur={valorRegistrado.onBlur}
+              name={valorRegistrado.name}
+              ref={valorRegistrado.ref}
+              className="text-lg font-medium"
+            />
+
+            {errors.novoValor && (
+              <p className="text-xs font-bold text-red-600">
+                {errors.novoValor.message}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-end">
             <Button
               variant="ghost"
               type="button"

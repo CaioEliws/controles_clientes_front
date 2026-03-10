@@ -7,7 +7,7 @@ import { ParcelasStats } from "@/pages/Parcelas/components/ParcelasStats";
 import { ParcelasTable } from "@/pages/Parcelas/components/ParcelasTable";
 import { ParcelasPagination } from "@/pages/Parcelas/components/ParcelasPagination";
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
-import { AlterarDataParcelaDialog } from "@/pages/Parcelas/components/AlterarDataParcelaDialog";
+import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
 import { ParcelasSkeleton } from "@/pages/Parcelas/components/ParcelasSkeleton";
 import { useParcelasPage } from "@/hooks/useParcelasPage";
 
@@ -17,12 +17,11 @@ export function Parcelas() {
   const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
-    const cliente = searchParams.get("cliente");
-    if (!cliente) return;
+    const cliente = searchParams.get("cliente") ?? "";
 
     vm.setSearch(cliente);
     vm.setPage(1);
-  }, [searchParams, vm]);
+  }, [searchParams, vm.setSearch, vm.setPage, vm]);
 
   const handleSearchChange = (value: string) => {
     const parsed = parcelasSearchSchema.safeParse(value);
@@ -108,7 +107,7 @@ export function Parcelas() {
       )}
 
       {vm.selected && (
-        <AlterarDataParcelaDialog
+        <AlterarParcelaDialog
           open={vm.alterarDialogOpen}
           onOpenChange={vm.setAlterarDialogOpen}
           idEmprestimo={vm.selected.idEmprestimo}
