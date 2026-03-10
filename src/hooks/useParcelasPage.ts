@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useParcelas } from "@/hooks/useParcelas";
 import { useParcelasFiltradas } from "@/hooks/useParcelasFiltradas";
@@ -21,7 +21,7 @@ export function useParcelasPage() {
   const { parcelas, loading, fetchParcelas } = useParcelas();
   const [searchParams] = useSearchParams();
 
-  const clienteParam = searchParams.get("cliente");
+  const clienteParam = searchParams.get("cliente") ?? "";
   const emprestimoIdParam = searchParams.get("emprestimoId");
   const emprestimoId = emprestimoIdParam ? Number(emprestimoIdParam) : null;
 
@@ -30,10 +30,8 @@ export function useParcelasPage() {
   const [alterarDialogOpen, setAlterarDialogOpen] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [selectedClients, setSelectedClients] = useState<string[]>(
-    clienteParam ? [clienteParam] : []
-  );
+  const [search, setSearch] = useState(clienteParam);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusParcela[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number | "ALL">("ALL");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -65,15 +63,25 @@ export function useParcelasPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtradas.length / ITEMS_PER_PAGE));
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
+
   const paginated = useMemo(() => {
-    return filtradas.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  }, [filtradas, page]);
+    const safePage = Math.min(Math.max(page, 1), totalPages);
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+
+    return filtradas.slice(start, end);
+  }, [filtradas, page, totalPages]);
 
   const hasFilters =
     !!search ||
     selectedClients.length > 0 ||
     selectedStatuses.length > 0 ||
-    selectedMonth !== "ALL";
+    selectedMonth !== "ALL" ||
+    sortOrder !== "asc";
 
   const clearFilters = useCallback(() => {
     setSearch("");
@@ -83,6 +91,14 @@ export function useParcelasPage() {
     setSortOrder("asc");
     setPage(1);
   }, []);
+
+  const goToPrevPage = useCallback(() => {
+    setPage((prev) => Math.max(1, prev - 1));
+  }, []);
+
+  const goToNextPage = useCallback(() => {
+    setPage((prev) => Math.min(totalPages, prev + 1));
+  }, [totalPages]);
 
   const toggleClient = useCallback((client: string) => {
     setSelectedClients((prev) =>
@@ -165,6 +181,8 @@ export function useParcelasPage() {
     clearFilters,
     toggleClient,
     toggleStatus,
+    goToPrevPage,
+    goToNextPage,
 
     selected,
     dialogOpen,

@@ -1,9 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "@/components/SideBar";
-import {
-  RxDashboard,
-} from "react-icons/rx";
-
+import { RxDashboard } from "react-icons/rx";
 import {
   FiUsers,
   FiLayers,
@@ -23,10 +20,10 @@ export function Layout() {
   ];
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen overflow-hidden">
       <Sidebar userName="Meu Dashboard" menuItems={menuItems} />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 min-w-0 overflow-x-hidden">
         <Outlet />
       </main>
     </div>

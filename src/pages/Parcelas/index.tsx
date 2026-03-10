@@ -16,12 +16,13 @@ export function Parcelas() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  const { setSearch, setPage } = vm;
+
   useEffect(() => {
     const cliente = searchParams.get("cliente") ?? "";
-
-    vm.setSearch(cliente);
-    vm.setPage(1);
-  }, [searchParams, vm.setSearch, vm.setPage, vm]);
+    setSearch(cliente);
+    setPage(1);
+  }, [searchParams, setSearch, setPage]);
 
   const handleSearchChange = (value: string) => {
     const parsed = parcelasSearchSchema.safeParse(value);
@@ -36,9 +37,15 @@ export function Parcelas() {
     vm.setPage(1);
   };
 
+  const handleClearFilters = () => {
+    setSearchError(null);
+    vm.clearFilters();
+    setSearchParams({}, { replace: true });
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50/50">
-      <main className="flex-1 space-y-8 p-8">
+      <main className="flex-1 space-y-8 p-8 min-w-0">
         {vm.loading ? (
           <ParcelasSkeleton />
         ) : (
@@ -48,11 +55,7 @@ export function Parcelas() {
               searchError={searchError}
               onSearchChange={handleSearchChange}
               hasFilters={vm.hasFilters}
-              onClearFilters={() => {
-                setSearchError(null);
-                vm.clearFilters();
-                setSearchParams({});
-              }}
+              onClearFilters={handleClearFilters}
             />
 
             <ParcelasStats
@@ -86,8 +89,8 @@ export function Parcelas() {
               page={vm.page}
               totalPages={vm.totalPages}
               totalItems={vm.filtradas.length}
-              onPrev={() => vm.setPage((p) => p - 1)}
-              onNext={() => vm.setPage((p) => p + 1)}
+              onPrev={vm.goToPrevPage}
+              onNext={vm.goToNextPage}
             />
           </>
         )}

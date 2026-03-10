@@ -32,51 +32,53 @@ export function EmprestimosTable({
 
   return (
     <>
-      <Card className="mt-6 overflow-hidden rounded-xl border-slate-200 shadow-sm">
-        <CardContent className="p-0">
-          <div className="w-full overflow-x-auto">
-            <Table className="min-w-[1500px] table-fixed">
-              <EmprestimosTableHeader
-                selectedClienteName={selectedClienteName}
-              />
+      <div className="mt-6 min-w-0 max-w-full">
+        <Card className="rounded-xl border-slate-200 shadow-sm">
+          <CardContent className="p-0">
+            <div className="w-full max-w-full overflow-x-auto">
+              <Table className="w-max min-w-[1500px] table-fixed">
+                <EmprestimosTableHeader
+                  selectedClienteName={selectedClienteName}
+                />
 
-              <TableBody>
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={TABLE_COLS}
-                      className="py-20 text-center text-slate-400"
-                    >
-                      Carregando dados...
-                    </td>
-                  </tr>
-                ) : emprestimos.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={TABLE_COLS}
-                      className="py-20 text-center text-slate-400"
-                    >
-                      Nenhum empréstimo encontrado.
-                    </td>
-                  </tr>
-                ) : (
-                  emprestimos.map((e) => (
-                    <EmprestimosTableRow
-                      key={e.id}
-                      emprestimo={e}
-                      canAct={actions.canAct}
-                      actionsDisabled={actionsDisabled}
-                      onOpenParcelas={onOpenParcelas}
-                      onRefinance={actions.openRefinance}
-                      onQuit={actions.openQuit}
-                    />
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                <TableBody>
+                  {loading ? (
+                    <tr>
+                      <td
+                        colSpan={TABLE_COLS}
+                        className="py-20 text-center text-slate-400"
+                      >
+                        Carregando dados...
+                      </td>
+                    </tr>
+                  ) : emprestimos.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={TABLE_COLS}
+                        className="py-20 text-center text-slate-400"
+                      >
+                        Nenhum empréstimo encontrado.
+                      </td>
+                    </tr>
+                  ) : (
+                    emprestimos.map((e) => (
+                      <EmprestimosTableRow
+                        key={e.id}
+                        emprestimo={e}
+                        canAct={actions.canAct}
+                        actionsDisabled={actionsDisabled}
+                        onOpenParcelas={onOpenParcelas}
+                        onRefinance={actions.openRefinance}
+                        onQuit={actions.openQuit}
+                      />
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <ConfirmActionDialog
         open={actions.isOpen}
