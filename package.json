@@ -7,7 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:edson": "vite --mode edson",
+    "dev:caio": "vite --mode caio",
+    "dev:ivani": "vite --mode ivani",
+    "build:edson": "vite build --mode edson",
+    "build:caio": "vite build --mode caio",
+    "build:ivani": "vite build --mode ivani"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
