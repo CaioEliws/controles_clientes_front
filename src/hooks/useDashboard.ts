@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { parcelasService } from "@/services/parcelas.service";
+import { parcelasService } from "@/services/parcelas/parcelas.service";
 import { emprestimosService } from "@/services/emprestimos.service";
 import type { ParcelaResponse, EmprestimoDetalhado, Cliente } from "@/types";
 import { mapParcelaToTable, type ParcelaTable } from "@/mappers/parcela.mapper";

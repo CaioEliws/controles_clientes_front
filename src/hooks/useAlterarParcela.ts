@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { parcelasService } from "@/services/parcelas.service";
+import { parcelasService } from "@/services/parcelas/parcelas.service";
 import { useProfile } from "@/contexts/ProfileContext";
 
 export function useAlterarParcela() {

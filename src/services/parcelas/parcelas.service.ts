@@ -1,5 +1,6 @@
-import { apiClient } from "./apiClient";
+import { apiClient } from "@/services/apiClient";
 import type { ParcelaResponse, StatusParcela } from "@/types";
+import type { ParcelaObservacao } from "@/types/parcela-observacao";
 
 export const parcelasService = {
   getVencendoHoje: () =>
@@ -57,4 +58,42 @@ export const parcelasService = {
       novaData,
       novoValor,
     }),
+
+  listarObservacoes: (idEmprestimo: number, numeroParcela: number) =>
+    apiClient.get<ParcelaObservacao[]>(
+      `/parcelas/observacoes?idEmprestimo=${idEmprestimo}&numeroParcela=${numeroParcela}`
+    ),
+
+  criarObservacao: (
+    idEmprestimo: number,
+    numeroParcela: number,
+    observacao: string
+  ) =>
+    apiClient.post<
+      void,
+      {
+        idEmprestimo: number;
+        numeroParcela: number;
+        observacao: string;
+      }
+    >("/parcelas/observacoes", {
+      idEmprestimo,
+      numeroParcela,
+      observacao,
+    }),
+
+  editarObservacao: (idObservacao: number, observacao: string) =>
+    apiClient.patch<
+      void,
+      {
+        idObservacao: number;
+        observacao: string;
+      }
+    >("/parcelas/observacoes", {
+      idObservacao,
+      observacao,
+    }),
+
+  excluirObservacao: (idObservacao: number) =>
+    apiClient.delete<void>(`/parcelas/observacoes/${idObservacao}`),
 };

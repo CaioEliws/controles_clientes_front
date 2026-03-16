@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   CartesianGrid,
@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type Point = {
   key: string;
-  year: number; 
+  year: number;
   label: string;
   recebido: number;
 };
@@ -29,13 +29,22 @@ interface Props {
   loading?: boolean;
 }
 
+type ChartSize = {
+  width: number;
+  height: number;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
-  const p = payload[0].payload as { label: string; valueLabel: string };
+
+  const p = payload[0].payload as {
+    label: string;
+    valueLabel: string;
+  };
 
   return (
-    <div className="bg-background border rounded-xl shadow-md p-4 space-y-1">
+    <div className="space-y-1 rounded-xl border bg-background p-4 shadow-md">
       <p className="text-sm text-muted-foreground">{p.label}</p>
       <p className="text-lg font-semibold text-foreground">{p.valueLabel}</p>
     </div>
@@ -43,20 +52,68 @@ function CustomTooltip({ active, payload }: any) {
 }
 
 const formatCurrency = (value: number) =>
-  (value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  (value ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 
 const formatCompact = (value: number) =>
-  (value ?? 0).toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
+  (value ?? 0).toLocaleString("pt-BR", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+
+function useChartContainerSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState<ChartSize>({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      const rect = element.getBoundingClientRect();
+      setSize({
+        width: Math.max(0, Math.floor(rect.width)),
+        height: Math.max(0, Math.floor(rect.height)),
+      });
+    };
+
+    updateSize();
+
+    const observer = new ResizeObserver(() => {
+      updateSize();
+    });
+
+    observer.observe(element);
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateSize);
+    };
+  }, []);
+
+  return {
+    ref,
+    size,
+    ready: size.width > 0 && size.height > 0,
+  };
+}
 
 export function FinancialChart({ data, loading = false }: Props) {
   const [yearFilter, setYearFilter] = useState<number | "ALL">("ALL");
+  const { ref: chartWrapperRef, ready } = useChartContainerSize<HTMLDivElement>();
 
   const years = useMemo(() => {
-    return Array.from(new Set((data ?? []).map((p) => p.year))).sort((a, b) => a - b);
+    return Array.from(new Set((data ?? []).map((p) => p.year))).sort(
+      (a, b) => a - b
+    );
   }, [data]);
 
   const yearlyData = useMemo(() => {
     const grouped = new Map<number, number>();
+
     for (const p of data ?? []) {
       grouped.set(p.year, (grouped.get(p.year) ?? 0) + p.recebido);
     }
@@ -85,10 +142,10 @@ export function FinancialChart({ data, loading = false }: Props) {
   const chartData = yearFilter === "ALL" ? yearlyData : monthlyData;
 
   return (
-    <Card className="rounded-2xl shadow-sm border">
+    <Card className="w-full min-w-0 rounded-2xl border shadow-sm">
       <CardHeader className="space-y-2">
-        <div className="flex items-start justify-between gap-6">
-          <div>
+        <div className="flex min-w-0 items-start justify-between gap-6">
+          <div className="min-w-0">
             <CardTitle className="text-xl">Recebimentos</CardTitle>
             <CardDescription>
               {yearFilter === "ALL" ? "Total por ano" : `Mensal em ${yearFilter}`}
@@ -96,13 +153,15 @@ export function FinancialChart({ data, loading = false }: Props) {
           </div>
 
           {loading ? (
-            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-10 w-44 shrink-0" />
           ) : (
             <select
-              className="h-10 rounded-xl border bg-white px-3 text-sm shadow-sm outline-none"
+              className="h-10 shrink-0 rounded-xl border bg-white px-3 text-sm shadow-sm outline-none"
               value={yearFilter === "ALL" ? "ALL" : String(yearFilter)}
               onChange={(e) =>
-                setYearFilter(e.target.value === "ALL" ? "ALL" : Number(e.target.value))
+                setYearFilter(
+                  e.target.value === "ALL" ? "ALL" : Number(e.target.value)
+                )
               }
             >
               <option value="ALL">Todos os anos</option>
@@ -116,42 +175,60 @@ export function FinancialChart({ data, loading = false }: Props) {
         </div>
       </CardHeader>
 
-      <CardContent className="h-96">
+      <CardContent className="min-w-0">
         {loading ? (
-          <div className="h-full w-full space-y-4">
+          <div className="h-96 w-full space-y-4">
             <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-full w-full rounded-xl" />
+            <Skeleton className="h-[calc(100%-2rem)] w-full rounded-xl" />
           </div>
         ) : chartData.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-sm text-slate-500">
+          <div className="flex h-96 w-full items-center justify-center text-sm text-slate-500">
             Nenhum dado para este filtro.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+          <div
+            ref={chartWrapperRef}
+            className="h-96 w-full min-w-0 overflow-hidden"
+          >
+            {ready ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                  />
 
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
 
-              <YAxis
-                tickFormatter={(v) => formatCompact(v)}
-                tick={{ fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-                width={60}
-              />
+                  <YAxis
+                    tickFormatter={(v) => formatCompact(v)}
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={60}
+                  />
 
-              <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip />} />
 
-              <Bar dataKey="recebido" radius={[10, 10, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+                  <Bar dataKey="recebido" radius={[10, 10, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Skeleton className="h-full w-full rounded-xl" />
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>

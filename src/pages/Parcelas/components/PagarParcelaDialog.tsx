@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { parcelasService } from "@/services/parcelas.service";
+import { parcelasService } from "@/services/parcelas/parcelas.service";
 
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
