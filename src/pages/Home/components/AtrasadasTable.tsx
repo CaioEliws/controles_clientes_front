@@ -11,8 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+
 import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton";
+import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
+
 import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
+import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
+
 import type { ParcelaTable } from "@/mappers/parcela.mapper";
 
 interface Props {
@@ -65,6 +70,7 @@ export function AtrasadasTable({
 }: Props) {
   const [selected, setSelected] = useState<ParcelaTable | null>(null);
   const [alterarOpen, setAlterarOpen] = useState(false);
+  const [pagarOpen, setPagarOpen] = useState(false);
 
   const formatCurrency = (val: number) =>
     (val ?? 0).toLocaleString("pt-BR", {
@@ -123,7 +129,10 @@ export function AtrasadasTable({
                       <Skeleton className="ml-auto h-6 w-[90px]" />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Skeleton className="ml-auto h-8 w-10" />
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-10" />
+                        <Skeleton className="h-8 w-10" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -171,6 +180,13 @@ export function AtrasadasTable({
                             setAlterarOpen(true);
                           }}
                         />
+
+                        <PagarParcelaButton
+                          onClick={() => {
+                            setSelected(parcela);
+                            setPagarOpen(true);
+                          }}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -209,15 +225,28 @@ export function AtrasadasTable({
       </Card>
 
       {selected && (
-        <AlterarParcelaDialog
-          open={alterarOpen}
-          onOpenChange={setAlterarOpen}
-          idEmprestimo={selected.idEmprestimo}
-          numeroParcela={selected.numeroParcela}
-          dataAtual={selected.dataVencimento}
-          valorAtual={getValor(selected)}
-          onSuccess={onRefresh}
-        />
+        <>
+          <AlterarParcelaDialog
+            open={alterarOpen}
+            onOpenChange={setAlterarOpen}
+            idEmprestimo={selected.idEmprestimo}
+            numeroParcela={selected.numeroParcela}
+            dataAtual={selected.dataVencimento}
+            valorAtual={getValor(selected)}
+            onSuccess={onRefresh}
+          />
+
+          <PagarParcelaDialog
+            open={pagarOpen}
+            onOpenChange={setPagarOpen}
+            idEmprestimo={selected.idEmprestimo}
+            numeroParcela={selected.numeroParcela}
+            valorParcela={getValor(selected)}
+            valorPago={selected.valorPago}
+            status={selected.status}
+            onSuccess={onRefresh}
+          />
+        </>
       )}
     </>
   );
