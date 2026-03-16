@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { emprestimosService } from "@/services/emprestimos.service";
 import type { CriarEmprestimoDTO } from "@/services/emprestimos.service";
 import { parseCurrency } from "@/utils/format";
+import { useProfile } from "@/contexts/ProfileContext";
 
 const schema = z.object({
   clienteId: z.string().min(1, "Selecione um cliente"),
@@ -47,6 +48,8 @@ const schema = z.object({
 export type EmprestimoFormData = z.infer<typeof schema>;
 
 export function useEmprestimo() {
+  const { perfilAtivo } = useProfile();
+
   const form = useForm<EmprestimoFormData>({
     resolver: zodResolver(schema),
     mode: "onChange",
@@ -62,6 +65,10 @@ export function useEmprestimo() {
   });
 
   async function onSubmit(data: EmprestimoFormData) {
+    if (!perfilAtivo) {
+      throw new Error("Nenhum perfil selecionado.");
+    }
+
     const payload: CriarEmprestimoDTO = {
       valorEmprestado: parseCurrency(data.valorEmprestado),
       quantidadeParcelas: Number(data.quantidadeParcelas),

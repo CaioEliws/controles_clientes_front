@@ -6,6 +6,7 @@ import { mapParcelaToTable, type ParcelaTable } from "@/mappers/parcela.mapper";
 import { parseDateISOorBR } from "@/utils/date";
 import { safeDate, toIsoDateString, toNumber } from "@/utils/normalize";
 import { clientesService } from "@/services/clientes.service";
+import { useProfile } from "@/contexts/ProfileContext";
 
 type Period = "3" | "6" | "12" | "all";
 
@@ -58,6 +59,7 @@ const DASHBOARD_CACHE_TTL_MS = 60_000;
 let dashboardCache:
   | {
       ts: number;
+      perfilId: number;
       vencemHoje: ParcelaTable[];
       atrasadas: ParcelaTable[];
       todasParcelas: ParcelaResponse[];
@@ -65,25 +67,51 @@ let dashboardCache:
     }
   | null = null;
 
+function getDashboardCacheForProfile(perfilId?: number | null) {
+  const cache = dashboardCache;
+  if (!cache || !perfilId || cache.perfilId !== perfilId) {
+    return null;
+  }
+  return cache;
+}
+
 export function useDashboard() {
+  const { perfilAtivo } = useProfile();
+
   const [period, setPeriod] = useState<Period>("all");
 
-  const [vencemHoje, setVencemHoje] = useState<ParcelaTable[]>(
-    () => dashboardCache?.vencemHoje ?? []
-  );
-  const [atrasadas, setAtrasadas] = useState<ParcelaTable[]>(
-    () => dashboardCache?.atrasadas ?? []
-  );
-  const [todasParcelas, setTodasParcelas] = useState<ParcelaResponse[]>(
-    () => dashboardCache?.todasParcelas ?? []
-  );
-  const [todosEmprestimos, setTodosEmprestimos] = useState<EmprestimoDetalhado[]>(
-    () => dashboardCache?.todosEmprestimos ?? []
-  );
+  const [vencemHoje, setVencemHoje] = useState<ParcelaTable[]>(() => {
+    return getDashboardCacheForProfile(perfilAtivo?.id)?.vencemHoje ?? [];
+  });
+
+  const [atrasadas, setAtrasadas] = useState<ParcelaTable[]>(() => {
+    return getDashboardCacheForProfile(perfilAtivo?.id)?.atrasadas ?? [];
+  });
+
+  const [todasParcelas, setTodasParcelas] = useState<ParcelaResponse[]>(() => {
+    return getDashboardCacheForProfile(perfilAtivo?.id)?.todasParcelas ?? [];
+  });
+
+  const [todosEmprestimos, setTodosEmprestimos] = useState<EmprestimoDetalhado[]>(() => {
+    return getDashboardCacheForProfile(perfilAtivo?.id)?.todosEmprestimos ?? [];
+  });
 
   const [loading, setLoading] = useState(false);
 
+  const clearState = useCallback(() => {
+    setVencemHoje([]);
+    setAtrasadas([]);
+    setTodasParcelas([]);
+    setTodosEmprestimos([]);
+    setLoading(false);
+  }, []);
+
   const loadBaseData = useCallback(async () => {
+    if (!perfilAtivo) {
+      clearState();
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -119,6 +147,7 @@ export function useDashboard() {
 
       dashboardCache = {
         ts: Date.now(),
+        perfilId: perfilAtivo.id,
         vencemHoje: vencemHojeMapped,
         atrasadas: atrasadasMapped,
         todasParcelas: todas,
@@ -126,22 +155,40 @@ export function useDashboard() {
       };
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
+      clearState();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [perfilAtivo, clearState]);
 
   useEffect(() => {
-    const now = Date.now();
-    const cacheValido =
-      dashboardCache && now - dashboardCache.ts < DASHBOARD_CACHE_TTL_MS;
-
-    if (!cacheValido) {
-      void loadBaseData();
+    if (!perfilAtivo) {
+      clearState();
+      return;
     }
-  }, [loadBaseData]);
+
+    const now = Date.now();
+    const cache = dashboardCache;
+
+    const cacheValido =
+      cache &&
+      cache.perfilId === perfilAtivo.id &&
+      now - cache.ts < DASHBOARD_CACHE_TTL_MS;
+
+    if (cacheValido) {
+      setVencemHoje(cache.vencemHoje);
+      setAtrasadas(cache.atrasadas);
+      setTodasParcelas(cache.todasParcelas);
+      setTodosEmprestimos(cache.todosEmprestimos);
+      setLoading(false);
+      return;
+    }
+
+    void loadBaseData();
+  }, [perfilAtivo, loadBaseData, clearState]);
 
   const refresh = useCallback(async () => {
+    dashboardCache = null;
     await loadBaseData();
   }, [loadBaseData]);
 

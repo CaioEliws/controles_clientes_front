@@ -26,10 +26,10 @@ export function Layout() {
   ];
 
   return (
-    <div className="flex min-h-screen overflow-hidden">
+    <div className="flex min-h-screen bg-background">
       <Sidebar userName="Meu Dashboard" menuItems={menuItems} />
 
-      <main className="min-w-0 flex-1 overflow-x-hidden">
+      <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden h-screen">
         <Outlet />
       </main>
     </div>

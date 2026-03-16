@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/services/apiClient";
 import { clientesService } from "@/services/clientes.service";
 import { emprestimosService } from "@/services/emprestimos.service";
+import { useProfile } from "@/contexts/ProfileContext";
 import type {
   Cliente,
   EmprestimoDetalhado,
@@ -45,6 +46,8 @@ const PARCELA_STATUSES: StatusParcela[] = [
 ];
 
 export function useRelatorioParcelasPage() {
+  const { perfilAtivo } = useProfile();
+
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [emprestimosRaw, setEmprestimosRaw] = useState<EmprestimoDetalhado[]>([]);
   const [parcelas, setParcelas] = useState<ParcelaResponse[]>([]);
@@ -63,8 +66,26 @@ export function useRelatorioParcelasPage() {
 
   const debounceRef = useRef<number | null>(null);
 
+  const clearState = useCallback(() => {
+    setClientes([]);
+    setEmprestimosRaw([]);
+    setParcelas([]);
+    setSelectedCliente(null);
+    setSelectedEmprestimoId(null);
+    setLoadingClientes(false);
+    setLoadingEmprestimos(false);
+    setLoadingParcelas(false);
+    setClientSearch("");
+    setClientSearchError(null);
+  }, []);
+
   useEffect(() => {
     let alive = true;
+
+    if (!perfilAtivo) {
+      clearState();
+      return;
+    }
 
     setLoadingClientes(true);
 
@@ -90,50 +111,68 @@ export function useRelatorioParcelasPage() {
         window.clearTimeout(debounceRef.current);
       }
     };
-  }, []);
+  }, [perfilAtivo, clearState]);
 
-  const fetchEmprestimos = useCallback(async (clienteId: number) => {
-    setLoadingEmprestimos(true);
+  const fetchEmprestimos = useCallback(
+    async (clienteId: number) => {
+      if (!perfilAtivo) {
+        setEmprestimosRaw([]);
+        setLoadingEmprestimos(false);
+        return;
+      }
 
-    try {
-      const data = await emprestimosService.getByCliente(clienteId);
-      setEmprestimosRaw(Array.isArray(data) ? data : []);
-    } catch {
-      setEmprestimosRaw([]);
-    } finally {
-      setLoadingEmprestimos(false);
-    }
-  }, []);
+      setLoadingEmprestimos(true);
 
-  const fetchParcelasByEmprestimo = useCallback(async (emprestimoId: number) => {
-    setLoadingParcelas(true);
+      try {
+        const data = await emprestimosService.getByCliente(clienteId);
+        setEmprestimosRaw(Array.isArray(data) ? data : []);
+      } catch {
+        setEmprestimosRaw([]);
+      } finally {
+        setLoadingEmprestimos(false);
+      }
+    },
+    [perfilAtivo]
+  );
 
-    try {
-      const results = await Promise.all(
-        PARCELA_STATUSES.map((status) =>
-          apiClient.get<ParcelaResponse[]>(`/parcelas?status=${status}`)
-        )
-      );
+  const fetchParcelasByEmprestimo = useCallback(
+    async (emprestimoId: number) => {
+      if (!perfilAtivo) {
+        setParcelas([]);
+        setLoadingParcelas(false);
+        return;
+      }
 
-      const merged = results.flat();
+      setLoadingParcelas(true);
 
-      const filtered = merged
-        .filter((parcela) => parcela.idEmprestimo === emprestimoId)
-        .sort((a, b) => {
-          if (a.status === "PAGO" && b.status !== "PAGO") return 1;
-          if (a.status !== "PAGO" && b.status === "PAGO") return -1;
+      try {
+        const results = await Promise.all(
+          PARCELA_STATUSES.map((status) =>
+            apiClient.get<ParcelaResponse[]>(`/parcelas?status=${status}`)
+          )
+        );
 
-          return safeDateMs(a.dataVencimento) - safeDateMs(b.dataVencimento);
-        });
+        const merged = results.flat();
 
-      setParcelas(filtered);
-    } catch (error) {
-      console.error("Erro ao buscar parcelas do empréstimo:", error);
-      setParcelas([]);
-    } finally {
-      setLoadingParcelas(false);
-    }
-  }, []);
+        const filtered = merged
+          .filter((parcela) => parcela.idEmprestimo === emprestimoId)
+          .sort((a, b) => {
+            if (a.status === "PAGO" && b.status !== "PAGO") return 1;
+            if (a.status !== "PAGO" && b.status === "PAGO") return -1;
+
+            return safeDateMs(a.dataVencimento) - safeDateMs(b.dataVencimento);
+          });
+
+        setParcelas(filtered);
+      } catch (error) {
+        console.error("Erro ao buscar parcelas do empréstimo:", error);
+        setParcelas([]);
+      } finally {
+        setLoadingParcelas(false);
+      }
+    },
+    [perfilAtivo]
+  );
 
   const handleSelectCliente = useCallback(
     (id: number | null) => {
@@ -142,15 +181,15 @@ export function useRelatorioParcelasPage() {
       setEmprestimosRaw([]);
       setParcelas([]);
 
-      if (!id) {
+      if (!id || !perfilAtivo) {
         setLoadingEmprestimos(false);
         setLoadingParcelas(false);
         return;
       }
 
-      fetchEmprestimos(id);
+      void fetchEmprestimos(id);
     },
-    [fetchEmprestimos]
+    [fetchEmprestimos, perfilAtivo]
   );
 
   const selectCliente = useCallback(
@@ -188,13 +227,13 @@ export function useRelatorioParcelasPage() {
   }, [clientes, clientSearch]);
 
   const emprestimos = useMemo<RelatorioEmprestimoOption[]>(() => {
-  return [...emprestimosRaw]
-    .sort((a, b) => safeDateMs(b.dataEmprestimo) - safeDateMs(a.dataEmprestimo))
-    .map((item) => ({
-      id: item.id,
-      label: `${formatCurrency(item.valorEmprestado)} - ${item.status}`,
-    }));
-}, [emprestimosRaw]);
+    return [...emprestimosRaw]
+      .sort((a, b) => safeDateMs(b.dataEmprestimo) - safeDateMs(a.dataEmprestimo))
+      .map((item) => ({
+        id: item.id,
+        label: `${formatCurrency(item.valorEmprestado)} - ${item.status}`,
+      }));
+  }, [emprestimosRaw]);
 
   const selectedClienteName = useMemo(() => {
     if (!selectedCliente) return null;
@@ -258,13 +297,13 @@ export function useRelatorioParcelasPage() {
   );
 
   useEffect(() => {
-    if (!selectedEmprestimoId) {
+    if (!selectedEmprestimoId || !perfilAtivo) {
       setParcelas([]);
       return;
     }
 
-    fetchParcelasByEmprestimo(selectedEmprestimoId);
-  }, [selectedEmprestimoId, fetchParcelasByEmprestimo]);
+    void fetchParcelasByEmprestimo(selectedEmprestimoId);
+  }, [selectedEmprestimoId, fetchParcelasByEmprestimo, perfilAtivo]);
 
   const clearFilters = useCallback(() => {
     setClientSearch("");

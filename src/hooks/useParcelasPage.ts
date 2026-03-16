@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useParcelas } from "@/hooks/useParcelas";
 import { useParcelasFiltradas } from "@/hooks/useParcelasFiltradas";
+import { useProfile } from "@/contexts/ProfileContext";
 import type { ParcelaResponse, StatusParcela } from "@/types";
 import { toIsoDateString, toNumber } from "@/utils/normalize";
 
@@ -18,6 +19,7 @@ export type ParcelaSelecionada = {
 };
 
 export function useParcelasPage() {
+  const { perfilAtivo } = useProfile();
   const { parcelas, loading, fetchParcelas } = useParcelas();
   const [searchParams] = useSearchParams();
 
@@ -35,6 +37,20 @@ export function useParcelasPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<StatusParcela[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number | "ALL">("ALL");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  useEffect(() => {
+    if (!perfilAtivo) {
+      setSelected(null);
+      setDialogOpen(false);
+      setAlterarDialogOpen(false);
+      setPage(1);
+      setSearch("");
+      setSelectedClients([]);
+      setSelectedStatuses([]);
+      setSelectedMonth("ALL");
+      setSortOrder("asc");
+    }
+  }, [perfilAtivo]);
 
   const parcelasBase = useMemo(() => {
     if (!emprestimoId) return parcelas;
@@ -64,7 +80,6 @@ export function useParcelasPage() {
   const totalPages = Math.max(1, Math.ceil(filtradas.length / ITEMS_PER_PAGE));
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage((prev) => Math.min(prev, totalPages));
   }, [totalPages]);
 

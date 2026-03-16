@@ -57,6 +57,7 @@ export function BackupPage() {
       setMessage(null);
 
       const API_URL = import.meta.env.VITE_API_URL ?? "/api";
+      const perfilId = localStorage.getItem("perfil_ativo_id");
 
       const resp = await fetch(`${API_URL}/export`, {
         method: "GET",
@@ -64,6 +65,7 @@ export function BackupPage() {
         headers: {
           Accept:
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          ...(perfilId ? { "X-Perfil-Id": perfilId } : {}),
         },
       });
 

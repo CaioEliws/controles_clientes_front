@@ -1,7 +1,9 @@
 import { useCallback, useState } from "react";
 import { parcelasService } from "@/services/parcelas.service";
+import { useProfile } from "@/contexts/ProfileContext";
 
 export function useAlterarParcela() {
+  const { perfilAtivo } = useProfile();
   const [loading, setLoading] = useState(false);
 
   const alterarParcela = useCallback(
@@ -11,6 +13,10 @@ export function useAlterarParcela() {
       novaData: string,
       novoValor: number
     ) => {
+      if (!perfilAtivo) {
+        throw new Error("Nenhum perfil selecionado.");
+      }
+
       try {
         setLoading(true);
 
@@ -27,7 +33,7 @@ export function useAlterarParcela() {
         setLoading(false);
       }
     },
-    []
+    [perfilAtivo]
   );
 
   return { alterarParcela, loading };

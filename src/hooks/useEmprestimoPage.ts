@@ -4,6 +4,7 @@ import { emprestimosService } from "@/services/emprestimos.service";
 import { clientesService } from "@/services/clientes.service";
 import type { Cliente, EmprestimoDetalhado } from "@/types";
 import { z } from "zod";
+import { useProfile } from "@/contexts/ProfileContext";
 
 const safeSearchRegex = /^[\p{L}\p{N}\s.'()-]*$/u;
 
@@ -34,6 +35,8 @@ const statusPriority: Record<string, number> = {
 };
 
 export function useEmprestimosPage() {
+  const { perfilAtivo } = useProfile();
+
   const [emprestimos, setEmprestimos] = useState<EmprestimoDetalhado[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
@@ -49,8 +52,24 @@ export function useEmprestimosPage() {
   const debounceRef = useRef<number | null>(null);
   const navigate = useNavigate();
 
+  const clearState = useCallback(() => {
+    setEmprestimos([]);
+    setClientes([]);
+    setSelectedCliente(null);
+    setLoading(false);
+    setClientSearch("");
+    setClientSearchError(null);
+    setSelectedStatus("ALL");
+    setSortOrder("desc");
+  }, []);
+
   useEffect(() => {
     let alive = true;
+
+    if (!perfilAtivo) {
+      clearState();
+      return;
+    }
 
     clientesService
       .getAll()
@@ -70,34 +89,43 @@ export function useEmprestimosPage() {
         window.clearTimeout(debounceRef.current);
       }
     };
-  }, []);
+  }, [perfilAtivo, clearState]);
 
-  const fetchEmprestimos = useCallback(async (clienteId: number) => {
-    setLoading(true);
+  const fetchEmprestimos = useCallback(
+    async (clienteId: number) => {
+      if (!perfilAtivo) {
+        setEmprestimos([]);
+        setLoading(false);
+        return;
+      }
 
-    try {
-      const data = await emprestimosService.getByCliente(clienteId);
-      setEmprestimos(Array.isArray(data) ? data : []);
-    } catch {
-      setEmprestimos([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      setLoading(true);
+
+      try {
+        const data = await emprestimosService.getByCliente(clienteId);
+        setEmprestimos(Array.isArray(data) ? data : []);
+      } catch {
+        setEmprestimos([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [perfilAtivo]
+  );
 
   const handleSelectCliente = useCallback(
     (id: number | null) => {
       setSelectedCliente(id);
       setEmprestimos([]);
 
-      if (!id) {
+      if (!id || !perfilAtivo) {
         setLoading(false);
         return;
       }
 
-      fetchEmprestimos(id);
+      void fetchEmprestimos(id);
     },
-    [fetchEmprestimos]
+    [fetchEmprestimos, perfilAtivo]
   );
 
   const selectCliente = useCallback(
@@ -181,10 +209,10 @@ export function useEmprestimosPage() {
   );
 
   const refetch = useCallback(() => {
-    if (selectedCliente) {
-      fetchEmprestimos(selectedCliente);
+    if (selectedCliente && perfilAtivo) {
+      void fetchEmprestimos(selectedCliente);
     }
-  }, [fetchEmprestimos, selectedCliente]);
+  }, [fetchEmprestimos, selectedCliente, perfilAtivo]);
 
   const tryAutoSelect = useCallback(
     (value: string) => {

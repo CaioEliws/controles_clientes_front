@@ -7,6 +7,7 @@ import { Emprestimo } from "@/pages/Emprestimo";
 import { SimulacaoEmprestimo } from "@/pages/Simulation";
 import { BackupPage } from "@/pages/BackupPage";
 import { RelatorioParcelas } from "@/pages/RelatorioParcelas";
+import { Configuracoes } from "./pages/Configuracoes";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/simulacao" element={<SimulacaoEmprestimo />} />
         <Route path="/relatorio-parcelas" element={<RelatorioParcelas />} />
         <Route path="/backup" element={<BackupPage />} />
+        <Route path="configuracoes" element={<Configuracoes />} />
       </Route>
     </Routes>
   );

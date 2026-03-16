@@ -1,42 +1,72 @@
-import { useState, useEffect } from "react";
-import { env } from "@/config/env";
+import { useState, useEffect, useCallback } from "react";
+import { apiClient } from "@/services/apiClient";
 import type { Cliente, Emprestimo } from "@/types";
-
-const API = env.API_URL;
+import { useProfile } from "@/contexts/ProfileContext";
 
 export function useClientes() {
+  const { perfilAtivo } = useProfile();
+
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalEmprestimos, setTotalEmprestimos] = useState(0);
 
-  const fetchClientes = async () => {
+  const clearState = useCallback(() => {
+    setClientes([]);
+    setTotalEmprestimos(0);
+    setLoading(false);
+  }, []);
+
+  const fetchClientes = useCallback(async () => {
+    if (!perfilAtivo) {
+      clearState();
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`${API}/clientes`);
-      const data: Cliente[] = await response.json();
+
+      const data = await apiClient.get<Cliente[]>("/clientes");
       setClientes(data);
-      
-      let total = 0;
-      for (const cliente of data) {
-        const res = await fetch(`${API}/clientes/${cliente.id}/emprestimos`);
-        const emprestimos: Emprestimo[] = await res.json();
-        total += emprestimos.length;
-      }
+
+      const emprestimosPorCliente = await Promise.all(
+        data.map((cliente) =>
+          apiClient
+            .get<Emprestimo[]>(`/clientes/${cliente.id}/emprestimos`)
+            .catch(() => [] as Emprestimo[])
+        )
+      );
+
+      const total = emprestimosPorCliente.reduce(
+        (acc, emprestimos) => acc + emprestimos.length,
+        0
+      );
+
       setTotalEmprestimos(total);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
+      clearState();
     } finally {
       setLoading(false);
     }
-  };
+  }, [perfilAtivo, clearState]);
 
-  const deletarCliente = async (id: number) => {
-    if (!window.confirm("Deseja realmente deletar?")) return;
-    await fetch(`${API}/clientes/${id}`, { method: "DELETE" });
-    fetchClientes();
-  };
+  const deletarCliente = useCallback(
+    async (id: number) => {
+      if (!perfilAtivo) {
+        throw new Error("Nenhum perfil selecionado.");
+      }
 
-  useEffect(() => { fetchClientes(); }, []);
+      if (!window.confirm("Deseja realmente deletar?")) return;
 
-  return { clientes, loading, totalEmprestimos, fetchClientes, deletarCliente, API };
+      await apiClient.delete(`/clientes/${id}`);
+      await fetchClientes();
+    },
+    [perfilAtivo, fetchClientes]
+  );
+
+  useEffect(() => {
+    void fetchClientes();
+  }, [fetchClientes]);
+
+  return { clientes, loading, totalEmprestimos, fetchClientes, deletarCliente };
 }

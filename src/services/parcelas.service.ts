@@ -1,11 +1,11 @@
 import { apiClient } from "./apiClient";
-import type { ParcelaResponse } from "@/types";
+import type { ParcelaResponse, StatusParcela } from "@/types";
 
 export const parcelasService = {
   getVencendoHoje: () =>
     apiClient.get<ParcelaResponse[]>("/parcelas/vencendo-hoje"),
 
-  getPorStatus: (status: string) =>
+  getPorStatus: (status: StatusParcela) =>
     apiClient.get<ParcelaResponse[]>(`/parcelas?status=${status}`),
 
   getMesAtual: () =>
@@ -15,17 +15,23 @@ export const parcelasService = {
     apiClient.get<ParcelaResponse[]>(`/parcelas/emprestimo/${idEmprestimo}`),
 
   pagar: (idEmprestimo: number, numeroParcela: number) =>
-    apiClient.post<void>("/parcelas/pagar", {
-      idEmprestimo,
-      numeroParcela,
-    }),
+    apiClient.post<void, { idEmprestimo: number; numeroParcela: number }>(
+      "/parcelas/pagar",
+      {
+        idEmprestimo,
+        numeroParcela,
+      }
+    ),
 
   pagarParcial: (
     idEmprestimo: number,
     numeroParcela: number,
     valorPago: number
   ) =>
-    apiClient.post<void>("/parcelas/pagar-parcial", {
+    apiClient.post<
+      void,
+      { idEmprestimo: number; numeroParcela: number; valorPago: number }
+    >("/parcelas/pagar-parcial", {
       idEmprestimo,
       numeroParcela,
       valorPago,
@@ -37,7 +43,15 @@ export const parcelasService = {
     novaData: string,
     novoValor: number
   ) =>
-    apiClient.patch<void>("/parcelas/alterar", {
+    apiClient.patch<
+      void,
+      {
+        idEmprestimo: number;
+        numeroParcela: number;
+        novaData: string;
+        novoValor: number;
+      }
+    >("/parcelas/alterar", {
       idEmprestimo,
       numeroParcela,
       novaData,
