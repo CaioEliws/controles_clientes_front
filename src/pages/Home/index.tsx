@@ -36,14 +36,18 @@ export function Home() {
   }
 
   return (
-    <div className="bg-muted/40 p-10 space-y-10">
+    <div className="space-y-10 bg-muted/40 p-10">
       <DashboardHeader period={period} setPeriod={setPeriod} />
 
-      <StatsCards loading={loading} {...stats} />
+      <div className="min-w-0">
+        <StatsCards loading={loading} {...stats} />
+      </div>
 
-      <FinancialChart loading={loading} data={chartData} />
+      <div className="min-w-0">
+        <FinancialChart loading={loading} data={chartData} />
+      </div>
 
-      <div className="grid gap-10">
+      <div className="grid min-w-0 gap-10">
         <VencemHojeTable
           loading={loading}
           parcelas={vencemHoje}

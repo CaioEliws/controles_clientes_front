@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ResponsiveContainer,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -29,7 +28,7 @@ interface Props {
   loading?: boolean;
 }
 
-type ChartSize = {
+type Size = {
   width: number;
   height: number;
 };
@@ -63,16 +62,24 @@ const formatCompact = (value: number) =>
     maximumFractionDigits: 1,
   });
 
-function useChartContainerSize<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
-  const [size, setSize] = useState<ChartSize>({ width: 0, height: 0 });
+export function FinancialChart({ data, loading = false }: Props) {
+  const [yearFilter, setYearFilter] = useState<number | "ALL">("ALL");
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
+
+  const chartRef = useCallback((node: HTMLDivElement | null) => {
+    setContainer(node);
+  }, []);
 
   useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
+    if (!container) {
+      setSize({ width: 0, height: 0 });
+      return;
+    }
 
     const updateSize = () => {
-      const rect = element.getBoundingClientRect();
+      const rect = container.getBoundingClientRect();
+
       setSize({
         width: Math.max(0, Math.floor(rect.width)),
         height: Math.max(0, Math.floor(rect.height)),
@@ -85,25 +92,14 @@ function useChartContainerSize<T extends HTMLElement>() {
       updateSize();
     });
 
-    observer.observe(element);
+    observer.observe(container);
     window.addEventListener("resize", updateSize);
 
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", updateSize);
     };
-  }, []);
-
-  return {
-    ref,
-    size,
-    ready: size.width > 0 && size.height > 0,
-  };
-}
-
-export function FinancialChart({ data, loading = false }: Props) {
-  const [yearFilter, setYearFilter] = useState<number | "ALL">("ALL");
-  const { ref: chartWrapperRef, ready } = useChartContainerSize<HTMLDivElement>();
+  }, [container]);
 
   const years = useMemo(() => {
     return Array.from(new Set((data ?? []).map((p) => p.year))).sort(
@@ -140,6 +136,7 @@ export function FinancialChart({ data, loading = false }: Props) {
   }, [data, yearFilter]);
 
   const chartData = yearFilter === "ALL" ? yearlyData : monthlyData;
+  const chartReady = size.width > 0 && size.height > 0;
 
   return (
     <Card className="w-full min-w-0 rounded-2xl border shadow-sm">
@@ -176,60 +173,55 @@ export function FinancialChart({ data, loading = false }: Props) {
       </CardHeader>
 
       <CardContent className="min-w-0">
-        {loading ? (
-          <div className="h-96 w-full space-y-4">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-[calc(100%-2rem)] w-full rounded-xl" />
-          </div>
-        ) : chartData.length === 0 ? (
-          <div className="flex h-96 w-full items-center justify-center text-sm text-slate-500">
-            Nenhum dado para este filtro.
-          </div>
-        ) : (
-          <div
-            ref={chartWrapperRef}
-            className="h-96 w-full min-w-0 overflow-hidden"
-          >
-            {ready ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                    vertical={false}
-                  />
+        <div ref={chartRef} className="h-96 w-full min-w-0">
+          {loading ? (
+            <div className="h-full w-full space-y-4">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-[calc(100%-2rem)] w-full rounded-xl" />
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
+              Nenhum dado para este filtro.
+            </div>
+          ) : !chartReady ? (
+            <div className="flex h-full w-full items-center justify-center">
+              <Skeleton className="h-full w-full rounded-xl" />
+            </div>
+          ) : (
+            <BarChart
+              width={size.width}
+              height={size.height}
+              data={chartData}
+              margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+                vertical={false}
+              />
 
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                    interval="preserveStartEnd"
-                  />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+              />
 
-                  <YAxis
-                    tickFormatter={(v) => formatCompact(v)}
-                    tick={{ fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={60}
-                  />
+              <YAxis
+                tickFormatter={(v) => formatCompact(v)}
+                tick={{ fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                width={60}
+              />
 
-                  <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} />
 
-                  <Bar dataKey="recebido" radius={[10, 10, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Skeleton className="h-full w-full rounded-xl" />
-              </div>
-            )}
-          </div>
-        )}
+              <Bar dataKey="recebido" radius={[10, 10, 0, 0]} />
+            </BarChart>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
