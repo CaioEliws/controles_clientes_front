@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "/api";
+const API_URL = "/api";
 const PERFIL_STORAGE_KEY = "perfil_ativo_id";
 
 function buildHeaders(options?: RequestInit) {
