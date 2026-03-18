@@ -46,13 +46,22 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
 
-      const data = await apiClient.get<Perfil[]>("/perfis");
-      setPerfis(data);
+      const response = await apiClient.get<Perfil[] | { perfis?: Perfil[]; data?: Perfil[] }>("/perfis");
+
+      const lista = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.perfis)
+        ? response.perfis
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+
+      setPerfis(lista);
 
       const perfilSalvoId = localStorage.getItem(PERFIL_STORAGE_KEY);
 
       if (perfilSalvoId) {
-        const perfilEncontrado = data.find(
+        const perfilEncontrado = lista.find(
           (perfil) => perfil.id === Number(perfilSalvoId)
         );
 
@@ -62,13 +71,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      if (data.length > 0) {
-        setPerfilAtivo(data[0]);
+      if (lista.length > 0) {
+        setPerfilAtivo(lista[0]);
       } else {
         setPerfilAtivo(null);
       }
     } catch (error) {
       console.error("Erro ao carregar perfis:", error);
+      setPerfis([]);
+      setPerfilAtivo(null);
     } finally {
       setLoading(false);
     }
