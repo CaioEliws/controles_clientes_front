@@ -18,6 +18,7 @@ interface Props {
   setSortOrder: (value: "asc" | "desc") => void;
   onPagar: (parcela: ParcelaResponse) => void;
   onAlterarParcela: (parcela: ParcelaResponse) => void;
+  onDesfazerPagamento: (parcela: ParcelaResponse) => void;
 }
 
 const TABLE_COLS = 7;
@@ -35,6 +36,7 @@ export function ParcelasTable({
   setSortOrder,
   onPagar,
   onAlterarParcela,
+  onDesfazerPagamento,
 }: Props) {
   return (
     <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
@@ -87,6 +89,7 @@ export function ParcelasTable({
                       parcela={parcela}
                       onPagar={onPagar}
                       onAlterarParcela={onAlterarParcela}
+                      onDesfazerPagamento={onDesfazerPagamento}
                     />
                   ))
                 )}

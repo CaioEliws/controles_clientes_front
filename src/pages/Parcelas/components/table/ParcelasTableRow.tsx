@@ -10,17 +10,20 @@ import {
 
 import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
 import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   parcela: ParcelaResponse;
   onPagar: (parcela: ParcelaResponse) => void;
   onAlterarParcela: (parcela: ParcelaResponse) => void;
+  onDesfazerPagamento: (parcela: ParcelaResponse) => void;
 }
 
 export function ParcelasTableRow({
   parcela,
   onPagar,
   onAlterarParcela,
+  onDesfazerPagamento,
 }: Props) {
   const valorParcela = toNumberCurrency(parcela.valorParcela);
   const valorPago = toNumberCurrency(parcela.valorPago);
@@ -69,9 +72,16 @@ export function ParcelasTableRow({
             <PagarParcelaButton onClick={() => onPagar(parcela)} />
           </div>
         ) : (
-          <span className="text-xs font-medium text-slate-400">
-            Sem ações
-          </span>
+          <div className="flex justify-end gap-2">
+            <AlterarParcelaButton onClick={() => onAlterarParcela(parcela)} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDesfazerPagamento(parcela)}
+            >
+              Desfazer pagamento
+            </Button>
+          </div>
         )}
       </TableCell>
     </TableRow>

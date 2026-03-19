@@ -17,6 +17,55 @@ interface Stats {
   totalAtraso: number;
 }
 
+const DASHBOARD_CACHE_TTL_MS = 60_000;
+
+let dashboardCache:
+  | {
+      ts: number;
+      perfilId: number;
+      vencemHoje: ParcelaTable[];
+      atrasadas: ParcelaTable[];
+      todasParcelas: ParcelaResponse[];
+      todosEmprestimos: EmprestimoDetalhado[];
+    }
+  | null = null;
+
+function getDashboardCacheForProfile(perfilId?: number | null) {
+  const cache = dashboardCache;
+  if (!cache || !perfilId || cache.perfilId !== perfilId) {
+    return null;
+  }
+  return cache;
+}
+
+function ensureArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (!response || typeof response !== "object") {
+    return [];
+  }
+
+  const obj = response as {
+    data?: T[];
+    content?: T[];
+    parcelas?: T[];
+    clientes?: T[];
+    emprestimos?: T[];
+    items?: T[];
+  };
+
+  if (Array.isArray(obj.data)) return obj.data;
+  if (Array.isArray(obj.content)) return obj.content;
+  if (Array.isArray(obj.parcelas)) return obj.parcelas;
+  if (Array.isArray(obj.clientes)) return obj.clientes;
+  if (Array.isArray(obj.emprestimos)) return obj.emprestimos;
+  if (Array.isArray(obj.items)) return obj.items;
+
+  return [];
+}
+
 const filterParcelasByPeriod = (parcelas: ParcelaResponse[], period: Period) => {
   if (period === "all") return parcelas;
 
@@ -53,27 +102,6 @@ const filterEmprestimosByPeriod = (
     return dt.getTime() >= limite;
   });
 };
-
-const DASHBOARD_CACHE_TTL_MS = 60_000;
-
-let dashboardCache:
-  | {
-      ts: number;
-      perfilId: number;
-      vencemHoje: ParcelaTable[];
-      atrasadas: ParcelaTable[];
-      todasParcelas: ParcelaResponse[];
-      todosEmprestimos: EmprestimoDetalhado[];
-    }
-  | null = null;
-
-function getDashboardCacheForProfile(perfilId?: number | null) {
-  const cache = dashboardCache;
-  if (!cache || !perfilId || cache.perfilId !== perfilId) {
-    return null;
-  }
-  return cache;
-}
 
 export function useDashboard() {
   const { perfilAtivo } = useProfile();
@@ -115,20 +143,34 @@ export function useDashboard() {
     setLoading(true);
 
     try {
-      const [clientes, vencendo, atrasado, pagas, pendentes, parciais] =
-        await Promise.all([
-          clientesService.getAll(),
-          parcelasService.getVencendoHoje(),
-          parcelasService.getPorStatus("ATRASADO"),
-          parcelasService.getPorStatus("PAGO"),
-          parcelasService.getPorStatus("PENDENTE"),
-          parcelasService.getPorStatus("PARCIAL"),
-        ]);
+      const [
+        clientesResponse,
+        vencendoResponse,
+        atrasadoResponse,
+        pagasResponse,
+        pendentesResponse,
+        parciaisResponse,
+      ] = await Promise.all([
+        clientesService.getAll(),
+        parcelasService.getVencendoHoje(),
+        parcelasService.getPorStatus("ATRASADO"),
+        parcelasService.getPorStatus("PAGO"),
+        parcelasService.getPorStatus("PENDENTE"),
+        parcelasService.getPorStatus("PARCIAL"),
+      ]);
+
+      const clientes = ensureArray<Cliente>(clientesResponse);
+      const vencendo = ensureArray<ParcelaResponse>(vencendoResponse);
+      const atrasado = ensureArray<ParcelaResponse>(atrasadoResponse);
+      const pagas = ensureArray<ParcelaResponse>(pagasResponse);
+      const pendentes = ensureArray<ParcelaResponse>(pendentesResponse);
+      const parciais = ensureArray<ParcelaResponse>(parciaisResponse);
 
       const emprestimosPorCliente = await Promise.all(
         clientes.map((cliente: Cliente) =>
           emprestimosService
             .getByCliente(cliente.id)
+            .then((response) => ensureArray<EmprestimoDetalhado>(response))
             .catch(() => [] as EmprestimoDetalhado[])
         )
       );

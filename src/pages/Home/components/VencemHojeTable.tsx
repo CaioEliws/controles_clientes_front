@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
+import { PagarParcelaDialog } from "@/pages/Parcelas/components/dialogs/PagarParcelaDialog";
 import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
 
 import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";

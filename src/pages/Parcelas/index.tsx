@@ -6,8 +6,9 @@ import { ParcelasHeader } from "@/pages/Parcelas/components/ParcelasHeader";
 import { ParcelasStats } from "@/pages/Parcelas/components/ParcelasStats";
 import { ParcelasTable } from "@/pages/Parcelas/components/table/ParcelasTable";
 import { ParcelasPagination } from "@/pages/Parcelas/components/ParcelasPagination";
-import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
+import { PagarParcelaDialog } from "@/pages/Parcelas/components/dialogs/PagarParcelaDialog";
 import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
+import { DesfazerPagamentoDialog } from "@/pages/Parcelas/components/dialogs/DesfazerPagamentoDialog";
 import { ParcelasSkeleton } from "@/pages/Parcelas/components/ParcelasSkeleton";
 import { useParcelasPage } from "@/hooks/useParcelasPage";
 
@@ -83,6 +84,7 @@ export function Parcelas() {
               }}
               onPagar={vm.openPagar}
               onAlterarParcela={vm.openAlterarParcela}
+              onDesfazerPagamento={vm.openDesfazerPagamento}
             />
 
             <ParcelasPagination
@@ -110,13 +112,23 @@ export function Parcelas() {
       )}
 
       {vm.selected && (
+        <DesfazerPagamentoDialog
+          open={vm.desfazerDialogOpen}
+          onOpenChange={vm.setDesfazerDialogOpen}
+          idEmprestimo={vm.selected.idEmprestimo}
+          numeroParcela={vm.selected.numeroParcela}
+          onSuccess={vm.handleDesfazerPagamentoSuccess}
+        />
+      )}
+
+      {vm.selected && (
         <AlterarParcelaDialog
           open={vm.alterarDialogOpen}
           onOpenChange={vm.setAlterarDialogOpen}
           idEmprestimo={vm.selected.idEmprestimo}
           numeroParcela={vm.selected.numeroParcela}
           dataAtual={vm.selected.dataVencimento}
-          valorAtual={vm.selected.valorRestante}
+          valorAtual={vm.selected.valorParcela}
           onSuccess={vm.fetchParcelas}
         />
       )}

@@ -18,6 +18,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      "/perfis": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     chunkSizeWarningLimit: 1000,
   },

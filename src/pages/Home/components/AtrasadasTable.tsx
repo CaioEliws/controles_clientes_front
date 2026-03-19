@@ -16,7 +16,7 @@ import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton"
 import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
 
 import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
-import { PagarParcelaDialog } from "@/pages/Parcelas/components/PagarParcelaDialog";
+import { PagarParcelaDialog } from "@/pages/Parcelas/components/dialogs/PagarParcelaDialog";
 
 import type { ParcelaTable } from "@/mappers/parcela.mapper";
 

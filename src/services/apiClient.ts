@@ -1,4 +1,5 @@
-const API_URL = "/api";
+// const API_URL = "/api";
+const API_URL = "http://localhost:8080";
 const PERFIL_STORAGE_KEY = "perfil_ativo_id";
 
 function buildHeaders(options?: RequestInit) {

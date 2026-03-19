@@ -30,6 +30,7 @@ export function useParcelasPage() {
   const [selected, setSelected] = useState<ParcelaSelecionada | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [alterarDialogOpen, setAlterarDialogOpen] = useState(false);
+  const [desfazerDialogOpen, setDesfazerDialogOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState(clienteParam);
@@ -43,6 +44,7 @@ export function useParcelasPage() {
       setSelected(null);
       setDialogOpen(false);
       setAlterarDialogOpen(false);
+      setDesfazerDialogOpen(false);
       setPage(1);
       setSearch("");
       setSelectedClients([]);
@@ -168,6 +170,20 @@ export function useParcelasPage() {
     [mapParcelaToSelecionada]
   );
 
+  const openDesfazerPagamento = useCallback(
+    (parcela: ParcelaResponse) => {
+      setSelected(mapParcelaToSelecionada(parcela));
+      setDesfazerDialogOpen(true);
+    },
+    [mapParcelaToSelecionada]
+  );
+
+  const handleDesfazerPagamentoSuccess = useCallback(async () => {
+    setDesfazerDialogOpen(false);
+    await fetchParcelas();
+    setAlterarDialogOpen(true);
+  }, [fetchParcelas]);
+
   return {
     loading,
     fetchParcelas,
@@ -204,7 +220,11 @@ export function useParcelasPage() {
     setDialogOpen,
     alterarDialogOpen,
     setAlterarDialogOpen,
+    desfazerDialogOpen,
+    setDesfazerDialogOpen,
     openPagar,
     openAlterarParcela,
+    openDesfazerPagamento,
+    handleDesfazerPagamentoSuccess,
   };
 }
