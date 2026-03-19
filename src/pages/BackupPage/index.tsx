@@ -15,6 +15,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { apiClient } from "@/services/apiClient";
+import { env } from "@/config/env";
 
 export function BackupPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -56,7 +57,7 @@ export function BackupPage() {
       setExporting(true);
       setMessage(null);
 
-      const API_URL = import.meta.env.VITE_API_URL ?? "/api";
+      const API_URL = env.API_URL;
       const perfilId = localStorage.getItem("perfil_ativo_id");
 
       const resp = await fetch(`${API_URL}/export`, {
@@ -110,7 +111,9 @@ export function BackupPage() {
       setError(false);
     } catch (err) {
       console.error(err);
-      setMessage("Erro ao exportar arquivo. Verifique se o backend está retornando XLSX.");
+      setMessage(
+        "Erro ao exportar arquivo. Verifique se o backend está retornando XLSX."
+      );
       setError(true);
     } finally {
       setExporting(false);
@@ -126,8 +129,8 @@ export function BackupPage() {
             Backup (Importar/Exportar)
           </CardTitle>
           <CardDescription>
-            Importe um Excel (.xlsx) para restaurar dados ou exporte para criar um
-            backup.
+            Importe um Excel (.xlsx) para restaurar dados ou exporte para criar
+            um backup.
           </CardDescription>
         </CardHeader>
 
@@ -166,7 +169,9 @@ export function BackupPage() {
           {message && (
             <div
               className={`flex items-center gap-2 text-sm p-3 rounded-lg ${
-                error ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                error
+                  ? "bg-red-100 text-red-700"
+                  : "bg-green-100 text-green-700"
               }`}
             >
               {error ? (

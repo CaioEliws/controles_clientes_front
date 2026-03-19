@@ -1,5 +1,6 @@
-// const API_URL = "/api";
-const API_URL = "http://localhost:8080";
+import { env } from "@/config/env";
+
+const API_URL = env.API_URL;
 const PERFIL_STORAGE_KEY = "perfil_ativo_id";
 
 function buildHeaders(options?: RequestInit) {

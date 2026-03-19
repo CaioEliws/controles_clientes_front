@@ -11,18 +11,18 @@ import { Configuracoes } from "./pages/Configuracoes";
 
 function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/clientes" element={<Clientes />} />
-        <Route path="/parcelas" element={<Parcelas />} />
-        <Route path="/emprestimo" element={<Emprestimo />} />
-        <Route path="/simulacao" element={<SimulacaoEmprestimo />} />
-        <Route path="/relatorio-parcelas" element={<RelatorioParcelas />} />
-        <Route path="/backup" element={<BackupPage />} />
-        <Route path="configuracoes" element={<Configuracoes />} />
-      </Route>
-    </Routes>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/clientes" element={<Clientes />} />
+          <Route path="/parcelas" element={<Parcelas />} />
+          <Route path="/emprestimo" element={<Emprestimo />} />
+          <Route path="/simulacao" element={<SimulacaoEmprestimo />} />
+          <Route path="/relatorio-parcelas" element={<RelatorioParcelas />} />
+          <Route path="/backup" element={<BackupPage />} />
+          <Route path="configuracoes" element={<Configuracoes />} />
+        </Route>
+      </Routes>
   );
 }
 
