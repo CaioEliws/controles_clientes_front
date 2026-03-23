@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import { NovoEmprestimoDialog } from "@/pages/Emprestimo/components/NovoEmprestimoDialog";
 import { EmprestimosTable } from "@/pages/Emprestimo/components/EmprestimosTable";
 import { ModalRelatorio } from "@/components/ModalRelatorio";
@@ -10,9 +13,97 @@ import { ClienteAutoComplete } from "@/components/ClienteAutoComplete";
 
 export function Emprestimo() {
   const vm = useEmprestimosPage();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const clientSearch = searchParams.get("clientSearch") ?? "";
+    const selectedClienteParam = searchParams.get("selectedCliente");
+    const selectedStatus =
+      (searchParams.get("selectedStatus") as
+        | "ALL"
+        | "EM_ABERTO"
+        | "REFINANCIADO"
+        | "QUITADO") ?? "ALL";
+    const sortOrder =
+      (searchParams.get("sortOrder") as "asc" | "desc") ?? "asc";
+
+    vm.setClientSearch(clientSearch);
+    vm.handleSelectCliente(
+      selectedClienteParam ? Number(selectedClienteParam) : null
+    );
+    vm.setSelectedStatus(selectedStatus);
+    vm.setSortOrder(sortOrder);
+  }, [searchParams]);
+
+  const updateFiltersInUrl = (params: {
+    clientSearch?: string;
+    selectedCliente?: number | null;
+    selectedStatus?: "ALL" | "EM_ABERTO" | "REFINANCIADO" | "QUITADO";
+    sortOrder?: "asc" | "desc";
+  }) => {
+    const next = new URLSearchParams(searchParams);
+
+    const clientSearch =
+      params.clientSearch !== undefined ? params.clientSearch : vm.clientSearch;
+    const selectedCliente =
+      params.selectedCliente !== undefined
+        ? params.selectedCliente
+        : vm.selectedCliente;
+    const selectedStatus =
+      params.selectedStatus !== undefined
+        ? params.selectedStatus
+        : vm.selectedStatus;
+    const sortOrder =
+      params.sortOrder !== undefined ? params.sortOrder : vm.sortOrder;
+
+    if (clientSearch) next.set("clientSearch", clientSearch);
+    else next.delete("clientSearch");
+
+    if (selectedCliente) next.set("selectedCliente", String(selectedCliente));
+    else next.delete("selectedCliente");
+
+    if (selectedStatus && selectedStatus !== "ALL") {
+      next.set("selectedStatus", selectedStatus);
+    } else {
+      next.delete("selectedStatus");
+    }
+
+    if (sortOrder && sortOrder !== "asc") next.set("sortOrder", sortOrder);
+    else next.delete("sortOrder");
+
+    setSearchParams(next, { replace: true });
+  };
 
   const hasActiveFilters =
     !!vm.clientSearch || !!vm.selectedCliente || vm.selectedStatus !== "ALL";
+
+  const handleClientSearchChange = (value: string) => {
+    vm.handleClientSearchChange(value);
+    updateFiltersInUrl({ clientSearch: value });
+  };
+
+  const handleSelectCliente = (value: string) => {
+    const clienteId = value ? Number(value) : null;
+    vm.handleSelectCliente(clienteId);
+    updateFiltersInUrl({ selectedCliente: clienteId });
+  };
+
+  const handleStatusChange = (
+    value: "ALL" | "EM_ABERTO" | "REFINANCIADO" | "QUITADO"
+  ) => {
+    vm.setSelectedStatus(value);
+    updateFiltersInUrl({ selectedStatus: value });
+  };
+
+  const handleSortOrderChange = (value: "asc" | "desc") => {
+    vm.setSortOrder(value);
+    updateFiltersInUrl({ sortOrder: value });
+  };
+
+  const handleClearFilters = () => {
+    vm.clearSearch();
+    setSearchParams({}, { replace: true });
+  };
 
   return (
     <div className="min-w-0 max-w-full space-y-6 p-4 sm:p-6 lg:space-y-8 lg:p-8">
@@ -54,8 +145,11 @@ export function Emprestimo() {
                       value={vm.clientSearch}
                       error={vm.clientSearchError}
                       suggestions={vm.suggestions}
-                      onChange={vm.handleClientSearchChange}
-                      onSelect={vm.selectCliente}
+                      onChange={handleClientSearchChange}
+                      onSelect={(cliente) => {
+                        vm.selectCliente(cliente);
+                        updateFiltersInUrl({ selectedCliente: cliente.id });
+                      }}
                     />
                   </div>
 
@@ -74,11 +168,7 @@ export function Emprestimo() {
                   <select
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400"
                     value={vm.selectedCliente ?? ""}
-                    onChange={(e) =>
-                      vm.handleSelectCliente(
-                        e.target.value ? Number(e.target.value) : null
-                      )
-                    }
+                    onChange={(e) => handleSelectCliente(e.target.value)}
                   >
                     <option value="">Selecione um cliente</option>
                     {vm.clientesFiltrados.map((c) => (
@@ -98,7 +188,7 @@ export function Emprestimo() {
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                     value={vm.sortOrder}
                     onChange={(e) =>
-                      vm.setSortOrder(e.target.value as "asc" | "desc")
+                      handleSortOrderChange(e.target.value as "asc" | "desc")
                     }
                     disabled={!vm.selectedCliente}
                   >
@@ -116,7 +206,7 @@ export function Emprestimo() {
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400"
                     value={vm.selectedStatus}
                     onChange={(e) =>
-                      vm.setSelectedStatus(
+                      handleStatusChange(
                         e.target.value as
                           | "ALL"
                           | "EM_ABERTO"
@@ -158,7 +248,7 @@ export function Emprestimo() {
                     <div className="w-full xl:w-[220px]">
                       <Button
                         variant="ghost"
-                        onClick={vm.clearSearch}
+                        onClick={handleClearFilters}
                         className="h-[64px] w-full rounded-xl border border-red-100 px-3 text-red-500 whitespace-nowrap hover:bg-red-50 hover:text-red-600"
                         type="button"
                       >

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { emprestimosService } from "@/services/emprestimos.service";
 import { clientesService } from "@/services/clientes.service";
 import type { Cliente, EmprestimoDetalhado } from "@/types";
@@ -36,6 +36,8 @@ const statusPriority: Record<string, number> = {
 
 export function useEmprestimosPage() {
   const { perfilAtivo } = useProfile();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [emprestimos, setEmprestimos] = useState<EmprestimoDetalhado[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -43,14 +45,14 @@ export function useEmprestimosPage() {
 
   const [loading, setLoading] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedStatus, setSelectedStatus] =
-    useState<StatusFilter>("ALL");
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("ALL");
 
   const [clientSearch, setClientSearch] = useState("");
   const [clientSearchError, setClientSearchError] = useState<string | null>(null);
 
   const debounceRef = useRef<number | null>(null);
-  const navigate = useNavigate();
+  const hydratedRef = useRef(false);
+  const syncingFromUrlRef = useRef(false);
 
   const clearState = useCallback(() => {
     setEmprestimos([]);
@@ -61,6 +63,8 @@ export function useEmprestimosPage() {
     setClientSearchError(null);
     setSelectedStatus("ALL");
     setSortOrder("desc");
+    hydratedRef.current = false;
+    syncingFromUrlRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -115,7 +119,11 @@ export function useEmprestimosPage() {
 
   const handleSelectCliente = useCallback(
     (id: number | null) => {
-      setSelectedCliente(id);
+      setSelectedCliente((prev) => {
+        if (prev === id) return prev;
+        return id;
+      });
+
       setEmprestimos([]);
 
       if (!id || !perfilAtivo) {
@@ -198,6 +206,95 @@ export function useEmprestimosPage() {
     return clientes.find((c) => c.id === selectedCliente)?.nome ?? null;
   }, [clientes, selectedCliente]);
 
+  // Hidrata somente quando a URL mudar por navegação real
+  useEffect(() => {
+    if (!perfilAtivo) return;
+
+    syncingFromUrlRef.current = true;
+
+    const clientSearchParam = searchParams.get("clientSearch") ?? "";
+    const selectedClienteParam = searchParams.get("selectedCliente");
+    const selectedStatusParam = searchParams.get("selectedStatus");
+    const sortOrderParam = searchParams.get("sortOrder");
+
+    const parsedSelectedCliente = selectedClienteParam
+      ? Number(selectedClienteParam)
+      : null;
+
+    const nextSelectedStatus: StatusFilter =
+      selectedStatusParam === "EM_ABERTO" ||
+      selectedStatusParam === "REFINANCIADO" ||
+      selectedStatusParam === "QUITADO"
+        ? selectedStatusParam
+        : "ALL";
+
+    const nextSortOrder: "asc" | "desc" =
+      sortOrderParam === "asc" ? "asc" : "desc";
+
+    setClientSearch(clientSearchParam);
+    setClientSearchError(null);
+    setSelectedStatus(nextSelectedStatus);
+    setSortOrder(nextSortOrder);
+
+    setSelectedCliente((prev) => {
+      if (prev === parsedSelectedCliente) return prev;
+      return parsedSelectedCliente;
+    });
+
+    if (parsedSelectedCliente && parsedSelectedCliente !== selectedCliente) {
+      void fetchEmprestimos(parsedSelectedCliente);
+    }
+
+    if (!parsedSelectedCliente) {
+      setEmprestimos([]);
+      setLoading(false);
+    }
+
+    hydratedRef.current = true;
+
+    queueMicrotask(() => {
+      syncingFromUrlRef.current = false;
+    });
+  }, [searchParams, perfilAtivo, fetchEmprestimos, selectedCliente]);
+
+  // Escreve na URL sem brigar com a hidratação
+  useEffect(() => {
+    if (!perfilAtivo || !hydratedRef.current || syncingFromUrlRef.current) return;
+
+    const nextParams = new URLSearchParams();
+
+    if (clientSearch) {
+      nextParams.set("clientSearch", clientSearch);
+    }
+
+    if (selectedCliente) {
+      nextParams.set("selectedCliente", String(selectedCliente));
+    }
+
+    if (selectedStatus !== "ALL") {
+      nextParams.set("selectedStatus", selectedStatus);
+    }
+
+    if (sortOrder !== "desc") {
+      nextParams.set("sortOrder", sortOrder);
+    }
+
+    const current = searchParams.toString();
+    const next = nextParams.toString();
+
+    if (current !== next) {
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [
+    clientSearch,
+    selectedCliente,
+    selectedStatus,
+    sortOrder,
+    perfilAtivo,
+    searchParams,
+    setSearchParams,
+  ]);
+
   const openParcelas = useCallback(
     ({ emprestimoId, cliente }: { emprestimoId: number; cliente: string }) => {
       const params = new URLSearchParams();
@@ -273,11 +370,12 @@ export function useEmprestimosPage() {
     setSortOrder("desc");
     setEmprestimos([]);
     setLoading(false);
+    setSearchParams({}, { replace: true });
 
     if (debounceRef.current) {
       window.clearTimeout(debounceRef.current);
     }
-  }, []);
+  }, [setSearchParams]);
 
   return {
     clientes,
@@ -304,6 +402,7 @@ export function useEmprestimosPage() {
 
     clientSearch,
     clientSearchError,
+    setClientSearch,
     handleClientSearchChange,
     clearSearch,
   };

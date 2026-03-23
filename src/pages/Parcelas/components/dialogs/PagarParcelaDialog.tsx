@@ -220,7 +220,7 @@ export function PagarParcelaDialog({
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">
-              Valor a Abater
+              Valor á Pagar
             </label>
 
             <Input
