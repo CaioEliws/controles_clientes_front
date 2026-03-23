@@ -11,6 +11,7 @@ import type { EmprestimoDetalhado } from "@/types";
 import { EmprestimosTableHeader } from "@/pages/Emprestimo/components/table/EmprestimosTableHeader";
 import { EmprestimosTableRow } from "@/pages/Emprestimo/components/table/EmprestimosTableRow";
 import { ConfirmActionDialog } from "@/pages/Emprestimo/components/table/ConfirmActionDialog";
+import { EditEmprestimoDialog } from "@/pages/Emprestimo/components/EditEmprestimoDialog";
 import { useEmprestimoStatusActions } from "@/pages/Emprestimo/components/table/useEmprestimosActions";
 
 type Props = {
@@ -35,9 +36,10 @@ export function EmprestimosTable({
   const actions = useEmprestimoStatusActions({ selectedClienteId, onRefetch });
 
   const actionsDisabled =
-  actions.loadingRefinance ||
-  actions.loadingQuit ||
-  actions.loadingDelete;
+    actions.loadingRefinance ||
+    actions.loadingQuit ||
+    actions.loadingDelete ||
+    actions.loadingEdit;
 
   return (
     <>
@@ -74,14 +76,11 @@ export function EmprestimosTable({
               <div className="min-w-[1180px] xl:min-w-[1240px]">
                 <Table className="min-w-full table-fixed whitespace-nowrap text-xs sm:text-sm">
                   <EmprestimosTableHeader />
-                  
+
                   <TableBody>
                     {loading ? (
                       <tr>
-                        <td
-                          colSpan={TABLE_COLS}
-                          className="px-4 py-14 text-center sm:px-6 sm:py-16"
-                        >
+                        <td colSpan={TABLE_COLS} className="px-4 py-14 text-center sm:px-6 sm:py-16">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <span className="text-sm font-medium text-slate-500">
                               Carregando dados...
@@ -94,10 +93,7 @@ export function EmprestimosTable({
                       </tr>
                     ) : emprestimos.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={TABLE_COLS}
-                          className="px-4 py-14 text-center sm:px-6 sm:py-16"
-                        >
+                        <td colSpan={TABLE_COLS} className="px-4 py-14 text-center sm:px-6 sm:py-16">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <span className="text-sm font-medium text-slate-500">
                               Nenhum empréstimo encontrado
@@ -119,6 +115,7 @@ export function EmprestimosTable({
                           onRefinance={actions.openRefinance}
                           onQuit={actions.openQuit}
                           onDelete={actions.openDelete}
+                          onEdit={actions.openEdit}
                         />
                       ))
                     )}
@@ -131,7 +128,10 @@ export function EmprestimosTable({
       </section>
 
       <ConfirmActionDialog
-        open={actions.isOpen}
+        open={
+          actions.isOpen &&
+          actions.actionType !== "EDITAR"
+        }
         onOpenChange={(open) => {
           if (!open) actions.close();
         }}
@@ -160,9 +160,7 @@ export function EmprestimosTable({
             </>
           )
         }
-        confirmText={
-          actions.actionType === "DELETAR" ? "Excluir" : "Confirmar"
-        }
+        confirmText={actions.actionType === "DELETAR" ? "Excluir" : "Confirmar"}
         loading={
           actions.actionType === "REFINANCIAR"
             ? actions.loadingRefinance
@@ -171,6 +169,16 @@ export function EmprestimosTable({
             : actions.loadingDelete
         }
         onConfirm={actions.confirm}
+      />
+
+      <EditEmprestimoDialog
+        open={actions.isOpen && actions.actionType === "EDITAR"}
+        loading={actions.loadingEdit}
+        emprestimo={actions.target}
+        onOpenChange={(open) => {
+          if (!open) actions.close();
+        }}
+        onSubmit={actions.handleEdit}
       />
     </>
   );

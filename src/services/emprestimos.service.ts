@@ -18,6 +18,11 @@ export type CriarEmprestimoDTO = {
   tipoContrato: TipoContrato;
 };
 
+export type ReprogramarParcelasDTO = {
+  novaDataInicial: string;
+  novoValorParcela: number;
+};
+
 export const emprestimosService = {
   getByCliente: (clienteId: number) =>
     apiClient.get<EmprestimoDetalhado[]>(
@@ -43,6 +48,16 @@ export const emprestimosService = {
   quitar: (clienteId: number, emprestimoId: number) =>
     apiClient.post<void>(
       `/clientes/${clienteId}/emprestimos/${emprestimoId}/quitar`
+    ),
+
+  reprogramarParcelas: (
+    clienteId: number,
+    emprestimoId: number,
+    data: ReprogramarParcelasDTO
+  ) =>
+    apiClient.patch<void, ReprogramarParcelasDTO>(
+      `/clientes/${clienteId}/emprestimos/${emprestimoId}/parcelas/reprogramar`,
+      data
     ),
 
   delete: (clienteId: number, emprestimoId: number) =>

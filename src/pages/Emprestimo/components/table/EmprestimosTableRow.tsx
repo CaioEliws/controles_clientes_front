@@ -3,7 +3,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import type { EmprestimoDetalhado } from "@/types";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { EmprestimoStatusCell } from "./EmprestimoStatusCell";
-import { Trash2 } from "lucide-react";
+import { SquarePen, Trash2 } from "lucide-react";
 
 type Props = {
   emprestimo: EmprestimoDetalhado;
@@ -13,6 +13,7 @@ type Props = {
   onRefinance: (e: EmprestimoDetalhado) => void;
   onQuit: (e: EmprestimoDetalhado) => void;
   onDelete: (e: EmprestimoDetalhado) => void;
+  onEdit: (e: EmprestimoDetalhado) => void;
 };
 
 function formatFrequencia(value: string) {
@@ -52,6 +53,7 @@ export function EmprestimosTableRow({
   onRefinance,
   onQuit,
   onDelete,
+  onEdit,
 }: Props) {
   const openParcelas = () => {
     onOpenParcelas({
@@ -125,7 +127,7 @@ export function EmprestimosTableRow({
         {formatDate(emprestimo.finalPagamento)}
       </TableCell>
 
-      <TableCell className="w-[170px] whitespace-nowrap px-3 py-3 align-middle sm:px-4">
+      <TableCell className="w-[210px] whitespace-nowrap px-3 py-3 align-middle sm:px-4">
         <div
           className="flex items-center justify-end gap-2"
           data-stop-row-click="true"
@@ -137,6 +139,17 @@ export function EmprestimosTableRow({
             onRefinance={onRefinance}
             onQuit={onQuit}
           />
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={actionsDisabled}
+            className="h-8 w-8 shrink-0 border-slate-200 p-0 text-slate-600 hover:bg-slate-50 hover:text-slate-700"
+            onClick={() => onEdit(emprestimo)}
+          >
+            <SquarePen className="h-4 w-4" />
+          </Button>
 
           <Button
             type="button"

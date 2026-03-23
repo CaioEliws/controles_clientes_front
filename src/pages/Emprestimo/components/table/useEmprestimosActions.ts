@@ -1,8 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 import { emprestimosService } from "@/services/emprestimos.service";
+import type {
+  ReprogramarParcelasDTO,
+} from "@/services/emprestimos.service";
 import type { EmprestimoDetalhado } from "@/types";
 
-export type ActionType = "REFINANCIAR" | "QUITAR" | "DELETAR";
+export type ActionType =
+  | "REFINANCIAR"
+  | "QUITAR"
+  | "DELETAR"
+  | "EDITAR";
 
 type Props = {
   selectedClienteId?: number | null;
@@ -20,6 +27,7 @@ export function useEmprestimoStatusActions({
   const [loadingRefinance, setLoadingRefinance] = useState(false);
   const [loadingQuit, setLoadingQuit] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   const canAct = useMemo(() => Boolean(selectedClienteId), [selectedClienteId]);
 
@@ -44,6 +52,12 @@ export function useEmprestimoStatusActions({
   const openDelete = useCallback((e: EmprestimoDetalhado) => {
     setTarget(e);
     setActionType("DELETAR");
+    setIsOpen(true);
+  }, []);
+
+  const openEdit = useCallback((e: EmprestimoDetalhado) => {
+    setTarget(e);
+    setActionType("EDITAR");
     setIsOpen(true);
   }, []);
 
@@ -86,6 +100,26 @@ export function useEmprestimoStatusActions({
     }
   }, [selectedClienteId, target, onRefetch, close]);
 
+  const handleEdit = useCallback(
+    async (payload: ReprogramarParcelasDTO) => {
+      if (!selectedClienteId || !target) return;
+
+      try {
+        setLoadingEdit(true);
+        await emprestimosService.reprogramarParcelas(
+          selectedClienteId,
+          target.id,
+          payload
+        );
+        onRefetch?.();
+        close();
+      } finally {
+        setLoadingEdit(false);
+      }
+    },
+    [selectedClienteId, target, onRefetch, close]
+  );
+
   const confirm = useCallback(async () => {
     if (actionType === "REFINANCIAR") {
       await handleRefinance();
@@ -109,11 +143,14 @@ export function useEmprestimoStatusActions({
     openRefinance,
     openQuit,
     openDelete,
+    openEdit,
     close,
     confirm,
+    handleEdit,
     loadingRefinance,
     loadingQuit,
     loadingDelete,
+    loadingEdit,
     canAct,
   };
 }
