@@ -34,7 +34,10 @@ export function EmprestimosTable({
 }: Props) {
   const actions = useEmprestimoStatusActions({ selectedClienteId, onRefetch });
 
-  const actionsDisabled = actions.loadingRefinance || actions.loadingQuit;
+  const actionsDisabled =
+  actions.loadingRefinance ||
+  actions.loadingQuit ||
+  actions.loadingDelete;
 
   return (
     <>
@@ -115,6 +118,7 @@ export function EmprestimosTable({
                           onOpenParcelas={onOpenParcelas}
                           onRefinance={actions.openRefinance}
                           onQuit={actions.openQuit}
+                          onDelete={actions.openDelete}
                         />
                       ))
                     )}
@@ -134,7 +138,9 @@ export function EmprestimosTable({
         title={
           actions.actionType === "REFINANCIAR"
             ? "Refinanciar empréstimo"
-            : "Quitar empréstimo"
+            : actions.actionType === "QUITAR"
+            ? "Quitar empréstimo"
+            : "Deletar empréstimo"
         }
         description={
           actions.actionType === "REFINANCIAR" ? (
@@ -142,18 +148,27 @@ export function EmprestimosTable({
               Isso vai marcar todas as parcelas em aberto como pagas e alterar o
               status para <b>REFINANCIADO</b>.
             </>
-          ) : (
+          ) : actions.actionType === "QUITAR" ? (
             <>
               Isso vai marcar todas as parcelas restantes como pagas e alterar o
               status para <b>QUITADO</b>.
             </>
+          ) : (
+            <>
+              Isso vai excluir permanentemente este <b>empréstimo</b>. Essa ação não
+              poderá ser desfeita.
+            </>
           )
         }
-        confirmText="Confirmar"
+        confirmText={
+          actions.actionType === "DELETAR" ? "Excluir" : "Confirmar"
+        }
         loading={
           actions.actionType === "REFINANCIAR"
             ? actions.loadingRefinance
-            : actions.loadingQuit
+            : actions.actionType === "QUITAR"
+            ? actions.loadingQuit
+            : actions.loadingDelete
         }
         onConfirm={actions.confirm}
       />

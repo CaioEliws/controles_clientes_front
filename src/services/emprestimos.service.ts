@@ -44,4 +44,9 @@ export const emprestimosService = {
     apiClient.post<void>(
       `/clientes/${clienteId}/emprestimos/${emprestimoId}/quitar`
     ),
+
+  delete: (clienteId: number, emprestimoId: number) =>
+    apiClient.delete<void>(
+      `/clientes/${clienteId}/emprestimos/${emprestimoId}`
+    ),
 };
