@@ -41,6 +41,27 @@ export function EmprestimosTable({
     actions.loadingDelete ||
     actions.loadingEdit;
 
+  const handleOpenRefinanceFromEdit = () => {
+    if (!actions.target) return;
+    const target = actions.target;
+    actions.close();
+    setTimeout(() => actions.openRefinance(target), 0);
+  };
+
+  const handleOpenQuitFromEdit = () => {
+    if (!actions.target) return;
+    const target = actions.target;
+    actions.close();
+    setTimeout(() => actions.openQuit(target), 0);
+  };
+
+  const handleOpenDeleteFromEdit = () => {
+    if (!actions.target) return;
+    const target = actions.target;
+    actions.close();
+    setTimeout(() => actions.openDelete(target), 0);
+  };
+
   return (
     <>
       <section className="mt-4 min-w-0 max-w-full sm:mt-6">
@@ -74,13 +95,16 @@ export function EmprestimosTable({
           <CardContent className="p-0">
             <div className="w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain [-webkit-overflow-scrolling:touch]">
               <div className="min-w-[1180px] xl:min-w-[1240px]">
-                <Table className="min-w-full table-fixed whitespace-nowrap text-xs sm:text-sm">
+                <Table className="min-w-full whitespace-nowrap text-xs sm:text-sm">
                   <EmprestimosTableHeader />
 
                   <TableBody>
                     {loading ? (
                       <tr>
-                        <td colSpan={TABLE_COLS} className="px-4 py-14 text-center sm:px-6 sm:py-16">
+                        <td
+                          colSpan={TABLE_COLS}
+                          className="px-4 py-14 text-center sm:px-6 sm:py-16"
+                        >
                           <div className="flex flex-col items-center justify-center gap-2">
                             <span className="text-sm font-medium text-slate-500">
                               Carregando dados...
@@ -93,7 +117,10 @@ export function EmprestimosTable({
                       </tr>
                     ) : emprestimos.length === 0 ? (
                       <tr>
-                        <td colSpan={TABLE_COLS} className="px-4 py-14 text-center sm:px-6 sm:py-16">
+                        <td
+                          colSpan={TABLE_COLS}
+                          className="px-4 py-14 text-center sm:px-6 sm:py-16"
+                        >
                           <div className="flex flex-col items-center justify-center gap-2">
                             <span className="text-sm font-medium text-slate-500">
                               Nenhum empréstimo encontrado
@@ -128,10 +155,7 @@ export function EmprestimosTable({
       </section>
 
       <ConfirmActionDialog
-        open={
-          actions.isOpen &&
-          actions.actionType !== "EDITAR"
-        }
+        open={actions.isOpen && actions.actionType !== "EDITAR"}
         onOpenChange={(open) => {
           if (!open) actions.close();
         }}
@@ -139,8 +163,8 @@ export function EmprestimosTable({
           actions.actionType === "REFINANCIAR"
             ? "Refinanciar empréstimo"
             : actions.actionType === "QUITAR"
-            ? "Quitar empréstimo"
-            : "Deletar empréstimo"
+              ? "Quitar empréstimo"
+              : "Deletar empréstimo"
         }
         description={
           actions.actionType === "REFINANCIAR" ? (
@@ -165,8 +189,8 @@ export function EmprestimosTable({
           actions.actionType === "REFINANCIAR"
             ? actions.loadingRefinance
             : actions.actionType === "QUITAR"
-            ? actions.loadingQuit
-            : actions.loadingDelete
+              ? actions.loadingQuit
+              : actions.loadingDelete
         }
         onConfirm={actions.confirm}
       />
@@ -179,6 +203,13 @@ export function EmprestimosTable({
           if (!open) actions.close();
         }}
         onSubmit={actions.handleEdit}
+        onRefinance={handleOpenRefinanceFromEdit}
+        onQuit={handleOpenQuitFromEdit}
+        onDelete={handleOpenDeleteFromEdit}
+        loadingRefinance={actions.loadingRefinance}
+        loadingQuit={actions.loadingQuit}
+        loadingDelete={actions.loadingDelete}
+        actionsDisabled={actionsDisabled}
       />
     </>
   );

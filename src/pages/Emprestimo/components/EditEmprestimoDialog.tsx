@@ -19,6 +19,15 @@ type Props = {
   emprestimo: EmprestimoDetalhado | null;
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: ReprogramarParcelasDTO) => Promise<void>;
+
+  onQuit?: () => void;
+  onRefinance?: () => void;
+  onDelete?: () => void;
+
+  loadingQuit?: boolean;
+  loadingRefinance?: boolean;
+  loadingDelete?: boolean;
+  actionsDisabled?: boolean;
 };
 
 function toInputDate(value?: string | null) {
@@ -45,6 +54,13 @@ export function EditEmprestimoDialog({
   emprestimo,
   onOpenChange,
   onSubmit,
+  onQuit,
+  onRefinance,
+  onDelete,
+  loadingQuit,
+  loadingRefinance,
+  loadingDelete,
+  actionsDisabled,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -59,13 +75,18 @@ export function EditEmprestimoDialog({
   }, [emprestimo, open]);
 
   async function handleSubmit() {
-    if (!novaDataInicial || !novoValorParcela) return;
+    if (!novaDataInicial || !novoValorParcela || loading) return;
 
     await onSubmit({
       novaDataInicial,
       novoValorParcela: parseCurrency(novoValorParcela),
     });
   }
+
+  const isStatusEmAberto = emprestimo?.status === "EM_ABERTO";
+  const isAnyActionLoading =
+    !!loading || !!loadingQuit || !!loadingRefinance || !!loadingDelete;
+  const disableLoanActions = !!actionsDisabled || isAnyActionLoading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,7 +110,7 @@ export function EditEmprestimoDialog({
                 type="date"
                 value={novaDataInicial}
                 onChange={(e) => setNovaDataInicial(e.target.value)}
-                disabled={loading}
+                disabled={isAnyActionLoading}
                 className="pr-12 text-lg font-medium [&::-webkit-calendar-picker-indicator]:opacity-0"
               />
 
@@ -103,6 +124,7 @@ export function EditEmprestimoDialog({
                   )?.showPicker?.()
                 }
                 className="absolute right-3 top-1/2 -translate-y-1/2"
+                disabled={isAnyActionLoading}
               >
                 📅
               </button>
@@ -124,7 +146,7 @@ export function EditEmprestimoDialog({
 
                 setNovoValorParcela(formatCurrency(numericValue));
               }}
-              disabled={loading}
+              disabled={isAnyActionLoading}
               className="text-lg font-medium"
               placeholder="Ex.: 150,00"
             />
@@ -171,6 +193,55 @@ export function EditEmprestimoDialog({
               </div>
             </div>
           )}
+
+          {emprestimo && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 space-y-1">
+                <p className="text-sm font-semibold text-slate-700">
+                  Ações do empréstimo
+                </p>
+                <p className="text-xs text-slate-500">
+                  Gerencie o status do empréstimo por aqui.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {isStatusEmAberto && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onRefinance}
+                      disabled={disableLoanActions || !onRefinance}
+                      className="sm:flex-1"
+                    >
+                      {loadingRefinance ? "Refinanciando..." : "Refinanciar"}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onQuit}
+                      disabled={disableLoanActions || !onQuit}
+                      className="sm:flex-1"
+                    >
+                      {loadingQuit ? "Quitando..." : "Quitar"}
+                    </Button>
+                  </>
+                )}
+
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={onDelete}
+                  disabled={disableLoanActions || !onDelete}
+                  className="sm:flex-1"
+                >
+                  {loadingDelete ? "Excluindo..." : "Excluir empréstimo"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:justify-end">
@@ -178,12 +249,16 @@ export function EditEmprestimoDialog({
             variant="ghost"
             type="button"
             onClick={() => onOpenChange(false)}
-            disabled={loading}
+            disabled={isAnyActionLoading}
           >
             Cancelar
           </Button>
 
-          <Button type="button" onClick={handleSubmit} disabled={loading}>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isAnyActionLoading || !novaDataInicial || !novoValorParcela}
+          >
             {loading ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
