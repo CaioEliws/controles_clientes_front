@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiClient } from "@/services/apiClient";
-import type { Cliente, Emprestimo } from "@/types";
+import type { Cliente } from "@/types";
 import { useProfile } from "@/contexts/ProfileContext";
+import { clientesService } from "@/services/clientes.service";
 
 export function useClientes() {
   const { perfilAtivo } = useProfile();
@@ -9,6 +9,8 @@ export function useClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalEmprestimos, setTotalEmprestimos] = useState(0);
+
+  const [erro, setErro] = useState<string | null>(null);
 
   const clearState = useCallback(() => {
     setClientes([]);
@@ -23,28 +25,19 @@ export function useClientes() {
     }
 
     try {
+      setErro(null);
       setLoading(true);
 
-      const data = await apiClient.get<Cliente[]>("/clientes");
+      const data = await clientesService.getAll();
       setClientes(data);
 
-      const emprestimosPorCliente = await Promise.all(
-        data.map((cliente) =>
-          apiClient
-            .get<Emprestimo[]>(`/clientes/${cliente.id}/emprestimos`)
-            .catch(() => [] as Emprestimo[])
-        )
-      );
-
-      const total = emprestimosPorCliente.reduce(
-        (acc, emprestimos) => acc + emprestimos.length,
-        0
-      );
+      const total = data.reduce((acc, cliente) => acc + (cliente.quantidadeEmprestimos ?? 0), 0);
 
       setTotalEmprestimos(total);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
       clearState();
+      setErro(error instanceof Error ? error.message : "Não foi possível carregar clientes.");
     } finally {
       setLoading(false);
     }
@@ -58,7 +51,7 @@ export function useClientes() {
 
       if (!window.confirm("Deseja realmente deletar?")) return;
 
-      await apiClient.delete(`/clientes/${id}`);
+      await clientesService.delete(id);
       await fetchClientes();
     },
     [perfilAtivo, fetchClientes]
@@ -68,5 +61,5 @@ export function useClientes() {
     void fetchClientes();
   }, [fetchClientes]);
 
-  return { clientes, loading, totalEmprestimos, fetchClientes, deletarCliente };
+  return { erro, clientes, loading, totalEmprestimos, fetchClientes, deletarCliente };
 }

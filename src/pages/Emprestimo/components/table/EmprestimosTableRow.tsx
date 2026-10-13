@@ -3,7 +3,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import type { EmprestimoDetalhado } from "@/types";
 import { formatCurrency, formatDate } from "@/utils/format";
 import { EmprestimoStatusCell } from "./EmprestimoStatusCell";
-import { SquarePen, Trash2 } from "lucide-react";
+import { FileText, SquarePen, Trash2 } from "lucide-react";
 
 type Props = {
   emprestimo: EmprestimoDetalhado;
@@ -14,6 +14,7 @@ type Props = {
   onQuit: (e: EmprestimoDetalhado) => void;
   onDelete: (e: EmprestimoDetalhado) => void;
   onEdit: (e: EmprestimoDetalhado) => void;
+  onDadosContrato: (e: EmprestimoDetalhado) => void;
 };
 
 function formatFrequencia(value: string) {
@@ -54,6 +55,7 @@ export function EmprestimosTableRow({
   onQuit,
   onDelete,
   onEdit,
+  onDadosContrato,
 }: Props) {
   const openParcelas = () => {
     onOpenParcelas({
@@ -145,7 +147,23 @@ export function EmprestimosTableRow({
             variant="outline"
             size="sm"
             disabled={actionsDisabled}
+            aria-label="Dados do contrato"
+            title="Dados do contrato"
+            className="h-8 w-8 shrink-0 border-slate-200 p-0 text-slate-600"
+            onClick={(event) => { event.stopPropagation(); onDadosContrato(emprestimo); }}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={actionsDisabled}
             className="h-8 w-8 shrink-0 border-slate-200 p-0 text-slate-600 hover:bg-slate-50 hover:text-slate-700"
+            aria-label="Editar empréstimo"
+            onKeyDown={(event) => event.stopPropagation()}
             onClick={() => onEdit(emprestimo)}
           >
             <SquarePen className="h-4 w-4" />
@@ -157,6 +175,8 @@ export function EmprestimosTableRow({
             size="sm"
             disabled={actionsDisabled}
             className="h-8 w-8 shrink-0 border-red-200 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+            aria-label="Excluir empréstimo"
+            onKeyDown={(event) => event.stopPropagation()}
             onClick={() => onDelete(emprestimo)}
           >
             <Trash2 className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ type Props = {
   cancelText?: string;
   loading?: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void> | void;
 };
 
 export function ConfirmActionDialog({
@@ -30,6 +30,11 @@ export function ConfirmActionDialog({
   onOpenChange,
   onConfirm,
 }: Props) {
+  const [erro, setErro] = useState<string | null>(null);
+  async function confirmar() {
+    setErro(null);
+    try { await onConfirm(); } catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível concluir a operação."); }
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -38,17 +43,18 @@ export function ConfirmActionDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
+        {erro && <p role="alert" className="text-sm text-red-600">{erro}</p>}
         <DialogFooter className="gap-2">
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => { setErro(null); onOpenChange(false); }}
             disabled={loading}
           >
             {cancelText}
           </Button>
 
-          <Button type="button" onClick={onConfirm} disabled={loading}>
+          <Button type="button" onClick={confirmar} disabled={loading}>
             {loading ? "Processando..." : confirmText}
           </Button>
         </DialogFooter>

@@ -5,9 +5,11 @@ import { emprestimosService } from "@/services/emprestimos.service";
 import type { CriarEmprestimoDTO } from "@/services/emprestimos.service";
 import { parseCurrency } from "@/utils/format";
 import { useProfile } from "@/contexts/ProfileContext";
+import type { Cliente } from "@/types";
 
 const schema = z.object({
   clienteId: z.string().min(1, "Selecione um cliente"),
+  fiadorId: z.string().min(1, "Selecione um fiador.").refine((value) => value === "" || (Number.isSafeInteger(Number(value)) && Number(value) > 0), "Selecione um fiador válido."),
 
   valorEmprestado: z
     .string()
@@ -47,7 +49,7 @@ const schema = z.object({
 
 export type EmprestimoFormData = z.infer<typeof schema>;
 
-export function useEmprestimo() {
+export function useEmprestimo(clientes: Cliente[]) {
   const { perfilAtivo } = useProfile();
 
   const form = useForm<EmprestimoFormData>({
@@ -55,6 +57,7 @@ export function useEmprestimo() {
     mode: "onChange",
     defaultValues: {
       clienteId: "",
+      fiadorId: "",
       valorEmprestado: "",
       quantidadeParcelas: "",
       jurosCobrado: "",
@@ -68,6 +71,12 @@ export function useEmprestimo() {
     if (!perfilAtivo) {
       throw new Error("Nenhum perfil selecionado.");
     }
+    if (!clientes.some((cliente) => cliente.id === Number(data.clienteId))) {
+      throw new Error("Selecione um devedor do perfil ativo.");
+    }
+    if (!data.fiadorId || !clientes.some((cliente) => cliente.id === Number(data.fiadorId))) {
+      throw new Error("Selecione um fiador do perfil ativo.");
+    }
 
     const payload: CriarEmprestimoDTO = {
       valorEmprestado: parseCurrency(data.valorEmprestado),
@@ -76,12 +85,14 @@ export function useEmprestimo() {
       formaPagamento: data.formaPagamento,
       frequenciaPagamento: data.frequenciaPagamento,
       tipoContrato: data.tipoContrato,
+      fiadorId: Number(data.fiadorId),
     };
 
     await emprestimosService.create(Number(data.clienteId), payload);
 
     form.reset({
       clienteId: "",
+      fiadorId: "",
       valorEmprestado: "",
       quantidadeParcelas: "",
       jurosCobrado: "",

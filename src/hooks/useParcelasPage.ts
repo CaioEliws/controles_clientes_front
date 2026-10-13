@@ -1,8 +1,7 @@
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useParcelas } from "@/hooks/useParcelas";
 import { useParcelasFiltradas } from "@/hooks/useParcelasFiltradas";
-import { useProfile } from "@/contexts/ProfileContext";
 import type { ParcelaResponse, StatusParcela } from "@/types";
 import { toIsoDateString, toNumber } from "@/utils/normalize";
 
@@ -19,8 +18,7 @@ export type ParcelaSelecionada = {
 };
 
 export function useParcelasPage() {
-  const { perfilAtivo } = useProfile();
-  const { parcelas, loading, fetchParcelas } = useParcelas();
+  const { parcelas, loading, fetchParcelas, erro } = useParcelas();
   const [searchParams] = useSearchParams();
 
   const clienteParam = searchParams.get("cliente") ?? "";
@@ -32,27 +30,12 @@ export function useParcelasPage() {
   const [alterarDialogOpen, setAlterarDialogOpen] = useState(false);
   const [desfazerDialogOpen, setDesfazerDialogOpen] = useState(false);
 
-  const [page, setPage] = useState(1);
+  const [requestedPage, setPage] = useState(1);
   const [search, setSearch] = useState(clienteParam);
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusParcela[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number | "ALL">("ALL");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-
-  useEffect(() => {
-    if (!perfilAtivo) {
-      setSelected(null);
-      setDialogOpen(false);
-      setAlterarDialogOpen(false);
-      setDesfazerDialogOpen(false);
-      setPage(1);
-      setSearch("");
-      setSelectedClients([]);
-      setSelectedStatuses([]);
-      setSelectedMonth("ALL");
-      setSortOrder("asc");
-    }
-  }, [perfilAtivo]);
 
   const parcelasBase = useMemo(() => {
     if (!emprestimoId) return parcelas;
@@ -81,9 +64,7 @@ export function useParcelasPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtradas.length / ITEMS_PER_PAGE));
 
-  useEffect(() => {
-    setPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
+  const page = Math.min(Math.max(requestedPage, 1), totalPages);
 
   const paginated = useMemo(() => {
     const safePage = Math.min(Math.max(page, 1), totalPages);
@@ -110,12 +91,12 @@ export function useParcelasPage() {
   }, []);
 
   const goToPrevPage = useCallback(() => {
-    setPage((prev) => Math.max(1, prev - 1));
-  }, []);
+    setPage(Math.max(1, page - 1));
+  }, [page]);
 
   const goToNextPage = useCallback(() => {
-    setPage((prev) => Math.min(totalPages, prev + 1));
-  }, [totalPages]);
+    setPage(Math.min(totalPages, page + 1));
+  }, [page, totalPages]);
 
   const toggleClient = useCallback((client: string) => {
     setSelectedClients((prev) =>
@@ -185,6 +166,7 @@ export function useParcelasPage() {
   }, [fetchParcelas]);
 
   return {
+    erro,
     loading,
     fetchParcelas,
 

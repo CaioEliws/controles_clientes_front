@@ -1,29 +1,13 @@
 import {
-  createContext,
-  useContext,
+  useCallback,
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import { apiClient } from "@/services/apiClient";
-
-export interface Perfil {
-  id: number;
-  nome: string;
-  dataCriacao?: string;
-}
-
-interface ProfileContextType {
-  perfis: Perfil[];
-  perfilAtivo: Perfil | null;
-  setPerfilAtivo: (perfil: Perfil | null) => void;
-  carregarPerfis: () => Promise<void>;
-  criarPerfil: (nome: string) => Promise<void>;
-  loading: boolean;
-}
-
-const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+import { ProfileContext, type Perfil, type PerfilUpdatePayload } from "./profileContextState";
 
 const PERFIL_STORAGE_KEY = "perfil_ativo_id";
 
@@ -31,8 +15,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [perfis, setPerfis] = useState<Perfil[]>([]);
   const [perfilAtivo, setPerfilAtivoState] = useState<Perfil | null>(null);
   const [loading, setLoading] = useState(false);
+  const ativoIdRef = useRef<number | null>(null);
 
-  function setPerfilAtivo(perfil: Perfil | null) {
+  const setPerfilAtivo = useCallback((perfil: Perfil | null) => {
+    ativoIdRef.current = perfil?.id ?? null;
     setPerfilAtivoState(perfil);
 
     if (perfil) {
@@ -40,9 +26,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem(PERFIL_STORAGE_KEY);
     }
-  }
+  }, []);
 
-  async function carregarPerfis() {
+  const carregarPerfis = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -66,6 +52,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         );
 
         if (perfilEncontrado) {
+          ativoIdRef.current = perfilEncontrado.id;
           setPerfilAtivoState(perfilEncontrado);
           return;
         }
@@ -83,9 +70,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [setPerfilAtivo]);
 
-  async function criarPerfil(nome: string) {
+  const criarPerfil = useCallback(async (nome: string) => {
     try {
       setLoading(true);
 
@@ -93,8 +80,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         nome,
       });
 
-      const novaLista = [...perfis, novoPerfil];
-      setPerfis(novaLista);
+      setPerfis((lista) => [...lista, novoPerfil]);
       setPerfilAtivo(novoPerfil);
     } catch (error) {
       console.error("Erro ao criar perfil:", error);
@@ -102,11 +88,32 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [setPerfilAtivo]);
+
+  const aplicarDadosPerfil = useCallback((perfil: Perfil) => {
+    setPerfis((lista) => lista.map((item) => item.id === perfil.id ? { ...item, ...perfil } : item));
+    if (ativoIdRef.current === perfil.id) {
+      setPerfilAtivoState((atual) => atual?.id === perfil.id ? { ...atual, ...perfil } : atual);
+    }
+  }, []);
+
+  const carregarPerfilDetalhado = useCallback(async (id: number) => {
+    if (ativoIdRef.current !== id) throw new Error("Selecione o perfil antes de consultar seus dados.");
+    const perfil = await apiClient.get<Perfil>(`/perfis/${id}`);
+    if (ativoIdRef.current === id) aplicarDadosPerfil(perfil);
+    return perfil;
+  }, [aplicarDadosPerfil]);
+
+  const atualizarPerfil = useCallback(async (id: number, payload: PerfilUpdatePayload) => {
+    if (ativoIdRef.current !== id) throw new Error("O perfil ativo mudou. Abra os dados do perfil atual.");
+    const perfil = await apiClient.put<Perfil, PerfilUpdatePayload>(`/perfis/${id}`, payload);
+    aplicarDadosPerfil(perfil);
+    return perfil;
+  }, [aplicarDadosPerfil]);
 
   useEffect(() => {
     void carregarPerfis();
-  }, []);
+  }, [carregarPerfis]);
 
   const value = useMemo(
     () => ({
@@ -115,9 +122,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setPerfilAtivo,
       carregarPerfis,
       criarPerfil,
+      carregarPerfilDetalhado,
+      atualizarPerfil,
       loading,
     }),
-    [perfis, perfilAtivo, loading]
+    [perfis, perfilAtivo, loading, setPerfilAtivo, carregarPerfis, criarPerfil, carregarPerfilDetalhado, atualizarPerfil]
   );
 
   return (
@@ -127,12 +136,3 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useProfile() {
-  const context = useContext(ProfileContext);
-
-  if (!context) {
-    throw new Error("useProfile deve ser usado dentro de ProfileProvider");
-  }
-
-  return context;
-}

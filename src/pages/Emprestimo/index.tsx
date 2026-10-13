@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { NovoEmprestimoDialog } from "@/pages/Emprestimo/components/NovoEmprestimoDialog";
@@ -10,30 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, X } from "lucide-react";
 import { ClienteAutoComplete } from "@/components/ClienteAutoComplete";
+import { useProfile } from "@/contexts/ProfileContext";
 
 export function Emprestimo() {
+  const { perfilAtivo } = useProfile();
+  return <EmprestimoDoPerfil key={perfilAtivo?.id ?? "sem-perfil"} />;
+}
+
+function EmprestimoDoPerfil() {
+  const { perfilAtivo } = useProfile();
   const vm = useEmprestimosPage();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    const clientSearch = searchParams.get("clientSearch") ?? "";
-    const selectedClienteParam = searchParams.get("selectedCliente");
-    const selectedStatus =
-      (searchParams.get("selectedStatus") as
-        | "ALL"
-        | "EM_ABERTO"
-        | "REFINANCIADO"
-        | "QUITADO") ?? "ALL";
-    const sortOrder =
-      (searchParams.get("sortOrder") as "asc" | "desc") ?? "asc";
-
-    vm.setClientSearch(clientSearch);
-    vm.handleSelectCliente(
-      selectedClienteParam ? Number(selectedClienteParam) : null
-    );
-    vm.setSelectedStatus(selectedStatus);
-    vm.setSortOrder(sortOrder);
-  }, [searchParams]);
 
   const updateFiltersInUrl = (params: {
     clientSearch?: string;
@@ -107,6 +93,7 @@ export function Emprestimo() {
 
   return (
     <div className="min-w-0 max-w-full space-y-6 p-4 sm:p-6 lg:space-y-8 lg:p-8">
+      {vm.erro && <p role="alert" className="text-sm text-red-600">{vm.erro}</p>}
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
           Empréstimos
@@ -270,6 +257,9 @@ export function Emprestimo() {
 
                   <div className="w-full xl:w-[240px]">
                     <NovoEmprestimoDialog
+                      key={`${perfilAtivo?.id}-${vm.selectedCliente}`}
+                      clientes={vm.clientes}
+                      onClienteCreated={vm.recarregarClientes}
                       disabled={!vm.selectedCliente}
                       selectedClienteId={vm.selectedCliente}
                       selectedClienteName={vm.selectedClienteName}
@@ -286,6 +276,9 @@ export function Emprestimo() {
 
       <div className="min-w-0 max-w-full">
         <EmprestimosTable
+          key={vm.selectedCliente ?? "sem-cliente"}
+          clientes={vm.clientes}
+          onClientesChanged={vm.recarregarClientes}
           loading={vm.loading}
           emprestimos={vm.emprestimos}
           selectedClienteName={vm.selectedClienteName}

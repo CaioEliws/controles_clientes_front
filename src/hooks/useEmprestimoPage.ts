@@ -43,6 +43,7 @@ export function useEmprestimosPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
 
+  const [erro, setErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("ALL");
@@ -81,9 +82,10 @@ export function useEmprestimosPage() {
         if (!alive) return;
         setClientes(Array.isArray(data) ? data : []);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!alive) return;
         setClientes([]);
+        setErro(error instanceof Error ? error.message : "Não foi possível carregar os clientes.");
       });
 
     return () => {
@@ -95,6 +97,12 @@ export function useEmprestimosPage() {
     };
   }, [perfilAtivo, clearState]);
 
+  const recarregarClientes = useCallback(async () => {
+    if (!perfilAtivo) throw new Error("Selecione um perfil antes de atualizar os clientes.");
+    const data = await clientesService.getAll();
+    setClientes(Array.isArray(data) ? data : []);
+  }, [perfilAtivo]);
+
   const fetchEmprestimos = useCallback(
     async (clienteId: number) => {
       if (!perfilAtivo) {
@@ -103,12 +111,14 @@ export function useEmprestimosPage() {
         return;
       }
 
+      setErro(null);
       setLoading(true);
 
       try {
         const data = await emprestimosService.getByCliente(clienteId);
         setEmprestimos(Array.isArray(data) ? data : []);
-      } catch {
+      } catch (error) {
+        setErro(error instanceof Error ? error.message : "Não foi possível carregar os empréstimos.");
         setEmprestimos([]);
       } finally {
         setLoading(false);
@@ -378,7 +388,9 @@ export function useEmprestimosPage() {
   }, [setSearchParams]);
 
   return {
+    erro,
     clientes,
+    recarregarClientes,
     clientesFiltrados,
 
     emprestimos: emprestimosFiltrados,

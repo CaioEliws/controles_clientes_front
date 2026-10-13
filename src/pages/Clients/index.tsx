@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { EditarClienteDialog } from "@/components/EditarClienteDialog";
+import { useProfile } from "@/contexts/ProfileContext";
+import type { Cliente } from "@/types";
+import { SquarePen } from "lucide-react";
 import { useClientes } from "@/hooks/useClients";
 import { ModalCadastro } from "@/components/ModalCadastro";
 import { ModalRelatorio } from "@/components/ModalRelatorio";
@@ -17,7 +21,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function Clientes() {
+  const { perfilAtivo } = useProfile();
+  return <ClientesDoPerfil key={perfilAtivo?.id ?? "sem-perfil"} />;
+}
+
+function ClientesDoPerfil() {
+  const { perfilAtivo } = useProfile();
+  const [edicao, setEdicao] = useState<{ perfilId: number; cliente: Cliente } | null>(null);
   const {
+    erro,
     clientes,
     loading,
     totalEmprestimos,
@@ -40,14 +52,15 @@ export function Clientes() {
 
   return (
     <div className="flex min-h-screen bg-muted/40">
-      <main className="flex-1 p-10 space-y-10">
-        <div className="flex justify-between items-center">
+      <main className="min-w-0 flex-1 p-4 sm:p-10 space-y-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
           <h1 className="text-3xl font-bold italic">Clientes</h1>
 
-          <div className="flex gap-4">
+          <div className="flex w-full flex-wrap gap-4 sm:w-auto">
             <Input
+              aria-label="Pesquisar clientes"
               placeholder="Pesquisar..."
-              className="w-64 bg-white"
+              className="min-w-0 flex-1 sm:w-64 bg-white"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -55,6 +68,7 @@ export function Clientes() {
           </div>
         </div>
 
+        {erro && <p role="alert" className="text-sm text-red-600">{erro}</p>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {loading ? (
             <>
@@ -131,10 +145,13 @@ export function Clientes() {
                             clienteId={cliente.id}
                             nomeCliente={cliente.nome}
                           />
+                          <Button variant="outline" size="sm" disabled={!perfilAtivo} onClick={() => { if (perfilAtivo) setEdicao({ perfilId: perfilAtivo.id, cliente }); }}>
+                            <SquarePen className="mr-1 h-4 w-4" /> Editar
+                          </Button>
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => deletarCliente(cliente.id)}
+                            onClick={() => { void deletarCliente(cliente.id).catch((error: unknown) => alert(error instanceof Error ? error.message : "Não foi possível excluir o cliente.")); }}
                           >
                             Deletar
                           </Button>
@@ -148,6 +165,9 @@ export function Clientes() {
           </CardContent>
         </Card>
       </main>
+      {edicao && perfilAtivo?.id === edicao.perfilId && (
+        <EditarClienteDialog key={`${edicao.perfilId}-${edicao.cliente.id}`} cliente={edicao.cliente} onClose={() => setEdicao(null)} onSuccess={fetchClientes} />
+      )}
     </div>
   );
 }

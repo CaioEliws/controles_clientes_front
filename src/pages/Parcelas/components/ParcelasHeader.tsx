@@ -18,7 +18,7 @@ export function ParcelasHeader({
   onClearFilters,
 }: Props) {
   return (
-    <div className="flex justify-between items-end">
+    <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold text-slate-900">Gestão de Parcelas</h1>
         <p className="text-slate-500">
@@ -26,7 +26,7 @@ export function ParcelasHeader({
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
         {hasFilters && (
           <Button
             variant="ghost"
@@ -38,12 +38,13 @@ export function ParcelasHeader({
           </Button>
         )}
 
-        <div className="relative space-y-1">
+        <div className="relative w-full space-y-1 sm:w-auto">
           <Search className="absolute left-3 top-5 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
+            aria-label="Buscar cliente"
             placeholder="Buscar cliente..."
             value={search}
-            className={`pl-10 w-72 bg-white ${searchError ? "border-red-500" : ""}`}
+            className={`pl-10 w-full sm:w-72 bg-white ${searchError ? "border-red-500" : ""}`}
             onChange={(e) => onSearchChange(e.target.value)}
           />
           {searchError && <p className="text-xs text-red-600">{searchError}</p>}

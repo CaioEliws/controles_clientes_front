@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { EmprestimoDetalhado } from "@/types";
 import type { ReprogramarParcelasDTO } from "@/services/emprestimos.service";
 import { formatCurrency, formatDate, parseCurrency } from "@/utils/format";
@@ -48,7 +48,11 @@ function formatEmprestimoStatus(status?: string | null) {
   }
 }
 
-export function EditEmprestimoDialog({
+export function EditEmprestimoDialog(props: Props) {
+  return <EditEmprestimoForm key={props.open ? props.emprestimo?.id : "fechado"} {...props} />;
+}
+
+function EditEmprestimoForm({
   open,
   loading,
   emprestimo,
@@ -64,23 +68,18 @@ export function EditEmprestimoDialog({
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const [novaDataInicial, setNovaDataInicial] = useState("");
-  const [novoValorParcela, setNovoValorParcela] = useState("");
+  const [novaDataInicial, setNovaDataInicial] = useState(() => toInputDate(emprestimo?.inicioPagamento));
+  const [novoValorParcela, setNovoValorParcela] = useState(() => emprestimo ? formatCurrency(emprestimo.valorParcela) : "");
 
-  useEffect(() => {
-    if (!emprestimo || !open) return;
-
-    setNovaDataInicial(toInputDate(emprestimo.inicioPagamento));
-    setNovoValorParcela(formatCurrency(emprestimo.valorParcela));
-  }, [emprestimo, open]);
-
+  const [erro, setErro] = useState<string | null>(null);
   async function handleSubmit() {
     if (!novaDataInicial || !novoValorParcela || loading) return;
 
-    await onSubmit({
+    setErro(null);
+    try { await onSubmit({
       novaDataInicial,
       novoValorParcela: parseCurrency(novoValorParcela),
-    });
+    }); } catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível reprogramar as parcelas."); }
   }
 
   const isStatusEmAberto = emprestimo?.status === "EM_ABERTO";
@@ -100,12 +99,13 @@ export function EditEmprestimoDialog({
 
         <div className="space-y-6 py-4">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="reprogramar-data" className="text-sm font-semibold text-slate-700">
               Nova Data Inicial
             </label>
 
             <div className="relative">
               <Input
+                id="reprogramar-data"
                 ref={inputRef}
                 type="date"
                 value={novaDataInicial}
@@ -123,6 +123,7 @@ export function EditEmprestimoDialog({
                       | null
                   )?.showPicker?.()
                 }
+                aria-label="Abrir calendário"
                 className="absolute right-3 top-1/2 -translate-y-1/2"
                 disabled={isAnyActionLoading}
               >
@@ -132,11 +133,12 @@ export function EditEmprestimoDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="reprogramar-valor" className="text-sm font-semibold text-slate-700">
               Novo Valor da Parcela
             </label>
 
             <Input
+              id="reprogramar-valor"
               type="text"
               inputMode="numeric"
               value={novoValorParcela}
@@ -162,6 +164,7 @@ export function EditEmprestimoDialog({
                   <p className="font-semibold text-slate-700">
                     {emprestimo.nomeCliente}
                   </p>
+                  <p className="text-xs text-slate-500">Fiador: {emprestimo.fiadorNome ?? "—"}</p>
                 </div>
 
                 <div className="space-y-1">
@@ -244,6 +247,7 @@ export function EditEmprestimoDialog({
           )}
         </div>
 
+        {erro && <p role="alert" className="text-sm text-red-600">{erro}</p>}
         <DialogFooter className="gap-2 sm:justify-end">
           <Button
             variant="ghost"

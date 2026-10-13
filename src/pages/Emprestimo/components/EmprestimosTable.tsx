@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,7 +8,8 @@ import {
 } from "@/components/ui/card";
 import { Table, TableBody } from "@/components/ui/table";
 
-import type { EmprestimoDetalhado } from "@/types";
+import type { Cliente, EmprestimoDetalhado } from "@/types";
+import { DadosContratoDialog } from "./DadosContratoDialog";
 import { EmprestimosTableHeader } from "@/pages/Emprestimo/components/table/EmprestimosTableHeader";
 import { EmprestimosTableRow } from "@/pages/Emprestimo/components/table/EmprestimosTableRow";
 import { ConfirmActionDialog } from "@/pages/Emprestimo/components/table/ConfirmActionDialog";
@@ -21,6 +23,8 @@ type Props = {
   selectedClienteId?: number | null;
   onOpenParcelas: (payload: { emprestimoId: number; cliente: string }) => void;
   onRefetch?: () => void;
+  clientes: Cliente[];
+  onClientesChanged: () => Promise<void>;
 };
 
 const TABLE_COLS = 13;
@@ -32,8 +36,11 @@ export function EmprestimosTable({
   selectedClienteId,
   onOpenParcelas,
   onRefetch,
+  clientes,
+  onClientesChanged,
 }: Props) {
   const actions = useEmprestimoStatusActions({ selectedClienteId, onRefetch });
+  const [contrato, setContrato] = useState<{ clienteId: number; emprestimoId: number } | null>(null);
 
   const actionsDisabled =
     actions.loadingRefinance ||
@@ -143,6 +150,9 @@ export function EmprestimosTable({
                           onQuit={actions.openQuit}
                           onDelete={actions.openDelete}
                           onEdit={actions.openEdit}
+                          onDadosContrato={(emprestimo) => {
+                            if (selectedClienteId) setContrato({ clienteId: selectedClienteId, emprestimoId: emprestimo.id });
+                          }}
                         />
                       ))
                     )}
@@ -194,6 +204,16 @@ export function EmprestimosTable({
         }
         onConfirm={actions.confirm}
       />
+
+      {contrato && contrato.clienteId === selectedClienteId && <DadosContratoDialog
+        key={`${contrato.clienteId}-${contrato.emprestimoId}`}
+        clienteId={contrato.clienteId}
+        emprestimoId={contrato.emprestimoId}
+        clientes={clientes}
+        onClientesChanged={onClientesChanged}
+        onRegularizado={onRefetch}
+        onClose={() => setContrato(null)}
+      />}
 
       <EditEmprestimoDialog
         open={actions.isOpen && actions.actionType === "EDITAR"}

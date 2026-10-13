@@ -1,3 +1,4 @@
+import { useProfile } from "@/contexts/ProfileContext";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { parcelasSearchSchema } from "@/schemas/parcelas.schema";
@@ -13,6 +14,11 @@ import { ParcelasSkeleton } from "@/pages/Parcelas/components/ParcelasSkeleton";
 import { useParcelasPage } from "@/hooks/useParcelasPage";
 
 export function Parcelas() {
+  const { perfilAtivo } = useProfile();
+  return <ParcelasDoPerfil key={perfilAtivo?.id ?? "sem-perfil"} />;
+}
+
+function ParcelasDoPerfil() {
   const vm = useParcelasPage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -47,6 +53,7 @@ export function Parcelas() {
   return (
     <div className="flex min-h-screen bg-slate-50/50">
       <main className="flex-1 space-y-8 p-8 min-w-0">
+        {vm.erro && <p role="alert" className="text-sm text-red-600">{vm.erro}</p>}
         {vm.loading ? (
           <ParcelasSkeleton />
         ) : (

@@ -10,6 +10,8 @@ export function useParcelas() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<StatusParcela | "ALL">("ALL");
 
+  const [erro, setErro] = useState<string | null>(null);
+
   const clearState = useCallback(() => {
     setParcelas([]);
     setLoading(false);
@@ -22,6 +24,7 @@ export function useParcelas() {
     }
 
     try {
+      setErro(null);
       setLoading(true);
 
       if (status === "ALL") {
@@ -49,6 +52,7 @@ export function useParcelas() {
     } catch (error) {
       console.error("Erro ao buscar parcelas:", error);
       clearState();
+      setErro(error instanceof Error ? error.message : "Não foi possível carregar parcelas.");
     } finally {
       setLoading(false);
     }
@@ -75,6 +79,7 @@ export function useParcelas() {
   }, [fetchParcelas]);
 
   return {
+    erro,
     parcelas,
     loading,
     status,

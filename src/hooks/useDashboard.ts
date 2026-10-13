@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { parcelasService } from "@/services/parcelas/parcelas.service";
 import { emprestimosService } from "@/services/emprestimos.service";
-import type { ParcelaResponse, EmprestimoDetalhado, Cliente } from "@/types";
+import type { ParcelaResponse, EmprestimoDetalhado } from "@/types";
 import { mapParcelaToTable, type ParcelaTable } from "@/mappers/parcela.mapper";
 import { parseDateISOorBR } from "@/utils/date";
 import { safeDate, toIsoDateString, toNumber } from "@/utils/normalize";
-import { clientesService } from "@/services/clientes.service";
 import { useProfile } from "@/contexts/ProfileContext";
 
 type Period = "3" | "6" | "12" | "all";
@@ -144,14 +143,14 @@ export function useDashboard() {
 
     try {
       const [
-        clientesResponse,
+        emprestimosResponse,
         vencendoResponse,
         atrasadoResponse,
         pagasResponse,
         pendentesResponse,
         parciaisResponse,
       ] = await Promise.all([
-        clientesService.getAll(),
+        emprestimosService.getDoPerfil(),
         parcelasService.getVencendoHoje(),
         parcelasService.getPorStatus("ATRASADO"),
         parcelasService.getPorStatus("PAGO"),
@@ -159,23 +158,13 @@ export function useDashboard() {
         parcelasService.getPorStatus("PARCIAL"),
       ]);
 
-      const clientes = ensureArray<Cliente>(clientesResponse);
       const vencendo = ensureArray<ParcelaResponse>(vencendoResponse);
       const atrasado = ensureArray<ParcelaResponse>(atrasadoResponse);
       const pagas = ensureArray<ParcelaResponse>(pagasResponse);
       const pendentes = ensureArray<ParcelaResponse>(pendentesResponse);
       const parciais = ensureArray<ParcelaResponse>(parciaisResponse);
 
-      const emprestimosPorCliente = await Promise.all(
-        clientes.map((cliente: Cliente) =>
-          emprestimosService
-            .getByCliente(cliente.id)
-            .then((response) => ensureArray<EmprestimoDetalhado>(response))
-            .catch(() => [] as EmprestimoDetalhado[])
-        )
-      );
-
-      const todosEmprestimosFlat = emprestimosPorCliente.flat();
+      const todosEmprestimosFlat = ensureArray<EmprestimoDetalhado>(emprestimosResponse);
 
       const vencemHojeMapped = vencendo.map(mapParcelaToTable);
       const atrasadasMapped = atrasado.map(mapParcelaToTable);

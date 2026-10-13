@@ -33,8 +33,7 @@ type Size = {
   height: number;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: readonly { payload: { label: string; valueLabel: string } }[] }) {
   if (!active || !payload?.length) return null;
 
   const p = payload[0].payload as {
@@ -69,13 +68,12 @@ export function FinancialChart({ data, loading = false }: Props) {
 
   const chartRef = useCallback((node: HTMLDivElement | null) => {
     setContainer(node);
+    const rect = node?.getBoundingClientRect();
+    setSize({ width: Math.max(0, Math.floor(rect?.width ?? 0)), height: Math.max(0, Math.floor(rect?.height ?? 0)) });
   }, []);
 
   useEffect(() => {
-    if (!container) {
-      setSize({ width: 0, height: 0 });
-      return;
-    }
+    if (!container) return;
 
     const updateSize = () => {
       const rect = container.getBoundingClientRect();
@@ -85,8 +83,6 @@ export function FinancialChart({ data, loading = false }: Props) {
         height: Math.max(0, Math.floor(rect.height)),
       });
     };
-
-    updateSize();
 
     const observer = new ResizeObserver(() => {
       updateSize();

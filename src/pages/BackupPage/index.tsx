@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ImportacaoClientesCsvCard } from "./ImportacaoClientesCsvCard";
 import {
   UploadCloud,
   FileSpreadsheet,
@@ -15,7 +16,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { apiClient } from "@/services/apiClient";
-import { env } from "@/config/env";
 
 export function BackupPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -38,14 +38,22 @@ export function BackupPage() {
       setLoading(true);
       setMessage(null);
 
-      await apiClient.post("/import", formData);
+      const resultado = await apiClient.post<{
+        totalLinhas: number;
+        linhasImportadas: number;
+        linhasIgnoradas: number;
+        linhasDuplicadas: number;
+        erros: { linha: number; motivo: string }[];
+      }>("/import", formData);
 
-      setMessage("Importação concluída com sucesso!");
-      setError(false);
+      const motivos = resultado.erros.slice(0, 3)
+        .map((item) => `Linha ${item.linha}: ${item.motivo}`).join(" ");
+      setMessage(`${resultado.linhasImportadas} linha(s) importada(s), ${resultado.linhasIgnoradas} ignorada(s), ${resultado.linhasDuplicadas} duplicada(s).${motivos ? ` ${motivos}` : ""}`);
+      setError(resultado.linhasIgnoradas > 0 || (resultado.totalLinhas > 0 && resultado.linhasImportadas === 0));
       setFile(null);
     } catch (err) {
       console.error(err);
-      setMessage("Erro ao importar arquivo.");
+      setMessage(err instanceof Error ? err.message : "Não foi possível importar o arquivo.");
       setError(true);
     } finally {
       setLoading(false);
@@ -57,43 +65,8 @@ export function BackupPage() {
       setExporting(true);
       setMessage(null);
 
-      const API_URL = env.API_URL;
-      const perfilId = localStorage.getItem("perfil_ativo_id");
-
-      const resp = await fetch(`${API_URL}/export`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Accept:
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          ...(perfilId ? { "X-Perfil-Id": perfilId } : {}),
-        },
-      });
-
-      if (!resp.ok) {
-        const txt = await resp.text().catch(() => "");
-        throw new Error(
-          `Falha ao exportar (${resp.status}). ${txt.slice(0, 200)}`
-        );
-      }
-
-      const contentType = resp.headers.get("content-type") || "";
-
-      if (
-        !contentType.includes(
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-      ) {
-        const txt = await resp.text().catch(() => "");
-        throw new Error(
-          `Resposta não é XLSX (content-type: ${contentType}). Início: ${txt.slice(
-            0,
-            200
-          )}`
-        );
-      }
-
-      const blob = await resp.blob();
+      const { blob, contentType } = await apiClient.getBlob("/export", "backup.xlsx");
+      if (!contentType.includes("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) throw new Error("Não foi possível baixar o arquivo.");
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -112,7 +85,7 @@ export function BackupPage() {
     } catch (err) {
       console.error(err);
       setMessage(
-        "Erro ao exportar arquivo. Verifique se o backend está retornando XLSX."
+        err instanceof Error ? err.message : "Não foi possível baixar o arquivo."
       );
       setError(true);
     } finally {
@@ -121,7 +94,7 @@ export function BackupPage() {
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center gap-6 px-4 py-6">
       <Card className="w-full max-w-xl shadow-xl rounded-2xl border">
         <CardHeader className="space-y-2">
           <CardTitle className="text-2xl font-bold flex items-center gap-2">
@@ -129,8 +102,8 @@ export function BackupPage() {
             Backup (Importar/Exportar)
           </CardTitle>
           <CardDescription>
-            Importe um Excel (.xlsx) para restaurar dados ou exporte para criar
-            um backup.
+            XLSX é uma exportação operacional. Não substitui o backup integral PostgreSQL de clientes e documentos.
+            Para taxas, prefira células explicitamente formatadas como percentual.
           </CardDescription>
         </CardHeader>
 
@@ -188,10 +161,11 @@ export function BackupPage() {
             disabled={loading}
             className="w-full rounded-xl text-base"
           >
-            {loading ? "Importando..." : "Importar Arquivo"}
+            {loading ? "Importando..." : "Importar clientes + empréstimos"}
           </Button>
         </CardContent>
       </Card>
+      <ImportacaoClientesCsvCard />
     </div>
   );
 }

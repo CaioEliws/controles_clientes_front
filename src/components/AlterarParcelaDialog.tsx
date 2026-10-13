@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAlterarParcela } from "@/hooks/useAlterarParcela";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { formatCurrency, parseCurrency } from "@/utils/format";
 import type { ParcelaObservacao } from "@/types/parcela-observacao";
 import { parcelaObservacaoService } from "@/services/parcelas/parcela-observacao.service";
@@ -83,22 +83,7 @@ export function AlterarParcelaDialog({
     },
   });
 
-  useEffect(() => {
-    if (open) {
-      reset({
-        novaData: dataAtual,
-        novoValor: formatCurrency(valorAtual),
-      });
-      void carregarObservacoes();
-    }
-  }, [open, dataAtual, valorAtual, reset, idEmprestimo, numeroParcela]);
-
-  const { ref: registerDataRef, ...restDataRegister } = register("novaData");
-  const valorRegistrado = register("novoValor");
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const valorAtualInput = watch("novoValor");
-
-  async function carregarObservacoes() {
+  const carregarObservacoes = useCallback(async () => {
     try {
       setLoadingObservacoes(true);
       const lista = await parcelaObservacaoService.listar(
@@ -111,7 +96,21 @@ export function AlterarParcelaDialog({
     } finally {
       setLoadingObservacoes(false);
     }
-  }
+  }, [idEmprestimo, numeroParcela]);
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        novaData: dataAtual,
+        novoValor: formatCurrency(valorAtual),
+      });
+      void carregarObservacoes();
+    }
+  }, [open, dataAtual, valorAtual, reset, carregarObservacoes]);
+
+  const { ref: registerDataRef, ...restDataRegister } = register("novaData");
+  const valorRegistrado = register("novoValor");
+  const valorAtualInput = watch("novoValor");
 
   const onSubmit = async (data: FormData) => {
     try {

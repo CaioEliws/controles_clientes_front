@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DadosCredorForm } from "@/components/DadosCredorForm";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Settings, UserRound, Plus, CheckCircle2, Shield } from "lucide-react";
 
@@ -101,11 +102,12 @@ export function Configuracoes() {
 
             <div className="mt-6 grid gap-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
+                <label htmlFor="config-perfil-ativo" className="mb-2 block text-sm font-medium text-slate-700">
                   Selecionar perfil
                 </label>
 
                 <select
+                  id="config-perfil-ativo"
                   className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50"
                   value={perfilAtivo?.id ?? ""}
                   onChange={(e) => {
@@ -231,11 +233,12 @@ export function Configuracoes() {
 
             <div className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
+                <label htmlFor="config-novo-perfil" className="mb-2 block text-sm font-medium text-slate-700">
                   Nome do perfil
                 </label>
 
                 <input
+                  id="config-novo-perfil"
                   type="text"
                   value={novoPerfil}
                   onChange={(e) => setNovoPerfil(e.target.value)}
@@ -255,6 +258,7 @@ export function Configuracoes() {
             </div>
           </aside>
         </div>
+        {perfilAtivo && <DadosCredorForm key={perfilAtivo.id} perfil={perfilAtivo} />}
       </div>
     </div>
   );

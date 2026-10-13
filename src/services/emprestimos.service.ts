@@ -10,6 +10,7 @@ export type FrequenciaPagamento =
 export type TipoContrato = "FISICO" | "DIGITAL";
 
 export type CriarEmprestimoDTO = {
+  fiadorId?: number | null;
   valorEmprestado: number;
   quantidadeParcelas: number;
   jurosCobrado: number;
@@ -23,7 +24,14 @@ export type ReprogramarParcelasDTO = {
   novoValorParcela: number;
 };
 
+export type AlterarFiadorDTO = { fiadorId: number };
+
 export const emprestimosService = {
+  getDoPerfil: () => apiClient.get<EmprestimoDetalhado[]>("/emprestimos/detalhes"),
+  alterarFiador: (clienteId: number, emprestimoId: number, data: AlterarFiadorDTO) =>
+    apiClient.patch<void, AlterarFiadorDTO>(
+      `/clientes/${clienteId}/emprestimos/${emprestimoId}/fiador`, data
+    ),
   getByCliente: (clienteId: number) =>
     apiClient.get<EmprestimoDetalhado[]>(
       `/clientes/${clienteId}/emprestimos/detalhes`
