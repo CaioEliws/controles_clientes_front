@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ type Props = {
   confirmText: string;
   cancelText?: string;
   loading?: boolean;
+  destructive?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => Promise<void> | void;
 };
@@ -27,9 +28,11 @@ export function ConfirmActionDialog({
   confirmText,
   cancelText = "Cancelar",
   loading,
+  destructive = false,
   onOpenChange,
   onConfirm,
 }: Props) {
+  const cancelar = useRef<HTMLButtonElement>(null);
   const [erro, setErro] = useState<string | null>(null);
   async function confirmar() {
     setErro(null);
@@ -37,15 +40,16 @@ export function ConfirmActionDialog({
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent role="alertdialog" onOpenAutoFocus={event => { event.preventDefault(); cancelar.current?.focus(); }}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {erro && <p role="alert" className="text-sm text-red-600">{erro}</p>}
-        <DialogFooter className="gap-2">
+        {erro && <p role="alert" className="px-5 py-3 text-sm text-red-600 sm:px-7">{erro}</p>}
+        <DialogFooter>
           <Button
+            ref={cancelar}
             type="button"
             variant="outline"
             onClick={() => { setErro(null); onOpenChange(false); }}
@@ -54,7 +58,7 @@ export function ConfirmActionDialog({
             {cancelText}
           </Button>
 
-          <Button type="button" onClick={confirmar} disabled={loading}>
+          <Button type="button" variant={destructive ? "destructive" : "default"} onClick={confirmar} disabled={loading}>
             {loading ? "Processando..." : confirmText}
           </Button>
         </DialogFooter>

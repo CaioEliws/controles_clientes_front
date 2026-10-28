@@ -1,3 +1,4 @@
+import { ErroOperacao } from "@/components/ErroOperacao";
 import { useState } from "react";
 import { apiClient } from "@/services/apiClient";
 import {
@@ -7,6 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -25,10 +27,12 @@ export function DesfazerPagamentoDialog({
   numeroParcela,
   onSuccess,
 }: DesfazerPagamentoDialogProps) {
+  const [erroPagamento, setErroPagamento] = useState<unknown>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleConfirm = async () => {
     try {
+      setErroPagamento(null);
       setIsSubmitting(true);
 
       await apiClient.post("/parcelas/desfazer-pagamento", {
@@ -44,7 +48,7 @@ export function DesfazerPagamentoDialog({
           ? error.message
           : "Erro ao desfazer pagamento da parcela.";
 
-      alert(message);
+      setErroPagamento(message);
       console.error("Erro ao desfazer pagamento:", error);
     } finally {
       setIsSubmitting(false);
@@ -58,7 +62,7 @@ export function DesfazerPagamentoDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Desfazer pagamento da parcela</DialogTitle>
           <DialogDescription>
@@ -66,6 +70,7 @@ export function DesfazerPagamentoDialog({
             disso, a tela de edição será aberta para você ajustar a data correta.
           </DialogDescription>
         </DialogHeader>
+        <DialogBody>
 
         <div className="space-y-3">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -84,7 +89,9 @@ export function DesfazerPagamentoDialog({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <ErroOperacao erro={erroPagamento} titulo="Não foi possível desfazer o pagamento" />
+        </DialogBody>
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

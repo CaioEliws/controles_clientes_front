@@ -33,10 +33,10 @@ export function ExcluirContratoButton({ clienteId, emprestimoId, contratoId, dis
       <Trash2 className="mr-1 h-4 w-4" aria-hidden="true" />{excluindo ? "Excluindo..." : "Excluir"}
     </Button>
     <Dialog open={open} onOpenChange={(value) => { if (!lock.current) setOpen(value); }}>
-      <DialogContent role="alertdialog" className="w-[calc(100%-2rem)] sm:max-w-lg" onOpenAutoFocus={(event) => { event.preventDefault(); cancelar.current?.focus(); }}>
+      <DialogContent role="alertdialog" className="max-w-lg" onOpenAutoFocus={(event) => { event.preventDefault(); cancelar.current?.focus(); }}>
         <DialogHeader><DialogTitle>Excluir contrato?</DialogTitle><DialogDescription>O Contrato #{contratoId} e seus arquivos PDF e Word serão removidos permanentemente. O empréstimo e suas parcelas não serão alterados.</DialogDescription></DialogHeader>
-        {erro && <p role="alert" className="text-sm text-red-600">{erro}</p>}
-        <DialogFooter className="gap-2">
+        {erro && <p role="alert" className="px-5 py-3 text-sm text-red-600 sm:px-7">{erro}</p>}
+        <DialogFooter>
           <Button ref={cancelar} type="button" variant="outline" disabled={excluindo} onClick={() => setOpen(false)}>Cancelar</Button>
           <Button type="button" variant="destructive" disabled={disabled || excluindo} onClick={() => { void excluir(); }}>{excluindo ? "Excluindo..." : "Excluir contrato"}</Button>
         </DialogFooter>

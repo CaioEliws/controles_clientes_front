@@ -12,9 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { PagarParcelaDialog } from "@/pages/Parcelas/components/dialogs/PagarParcelaDialog";
 import { AlterarParcelaDialog } from "@/components/AlterarParcelaDialog";
-
-import { PagarParcelaButton } from "@/components/actions/PagarParcelaButton";
-import { AlterarParcelaButton } from "@/components/actions/AlterarParcelaButton";
+import { DashboardParcelaActions } from "./DashboardParcelaActions";
 
 import type { ParcelaTable } from "@/mappers/parcela.mapper";
 
@@ -63,7 +61,7 @@ export function VencemHojeTable({
             </h3>
           </div>
 
-          <Table>
+          <Table className="whitespace-nowrap [&_tbody_td]:py-2 [&_tbody_td]:align-middle">
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead>Cliente</TableHead>
@@ -109,7 +107,7 @@ export function VencemHojeTable({
                     key={`${parcela.idEmprestimo}-${parcela.numeroParcela}`}
                     className="hover:bg-slate-50/50"
                   >
-                    <TableCell className="font-semibold text-slate-700">
+                    <TableCell className="max-w-[240px] truncate font-semibold text-slate-700">
                       {parcela.cliente}
                     </TableCell>
 
@@ -122,20 +120,12 @@ export function VencemHojeTable({
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <AlterarParcelaButton
-                          onClick={() => {
-                            setSelected(parcela);
-                            setAlterarOpen(true);
-                          }}
-                        />
-                        <PagarParcelaButton
-                          onClick={() => {
-                            setSelected(parcela);
-                            setPagarOpen(true);
-                          }}
-                        />
-                      </div>
+                      <DashboardParcelaActions
+                        parcela={parcela}
+                        incluirHoje={true}
+                        onEditar={() => { setSelected(parcela); setAlterarOpen(true); }}
+                        onPagar={() => { setSelected(parcela); setPagarOpen(true); }}
+                      />
                     </TableCell>
                   </TableRow>
                 ))

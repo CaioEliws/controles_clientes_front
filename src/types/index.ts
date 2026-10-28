@@ -27,6 +27,7 @@ export interface DadosPessoais {
 }
 
 export interface Cliente extends DadosPessoais {
+  telefoneWhatsapp?: string | null;
   quantidadeEmprestimos?: number | null;
   id: number;
   nome: string;
@@ -108,6 +109,8 @@ export type StatusParcela =
   | "PARCIAL";
 
 export interface ParcelaResponse {
+  clienteId?: number | null;
+  telefoneWhatsapp?: string | null;
   idEmprestimo: number;
   numeroParcela: number;
   nomeCliente: string;

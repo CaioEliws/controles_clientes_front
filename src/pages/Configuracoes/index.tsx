@@ -1,3 +1,5 @@
+import { ErroOperacao } from "@/components/ErroOperacao";
+import { GerenciarExclusaoPerfis } from "./GerenciarExclusaoPerfis";
 import { useState } from "react";
 import { DadosCredorForm } from "@/components/DadosCredorForm";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -13,6 +15,7 @@ export function Configuracoes() {
   } = useProfile();
 
   const [novoPerfil, setNovoPerfil] = useState("");
+  const [erroCriacao, setErroCriacao] = useState<unknown>(null);
   const [criando, setCriando] = useState(false);
 
   async function handleCriarPerfil() {
@@ -20,11 +23,12 @@ export function Configuracoes() {
     if (!nome) return;
 
     try {
+      setErroCriacao(null);
       setCriando(true);
       await criarPerfil(nome);
       setNovoPerfil("");
     } catch {
-      alert("Não foi possível criar o perfil.");
+      setErroCriacao("Não foi possível criar o perfil.");
     } finally {
       setCriando(false);
     }
@@ -255,10 +259,12 @@ export function Configuracoes() {
               >
                 {criando ? "Criando..." : "Criar perfil"}
               </button>
+        <ErroOperacao erro={erroCriacao} titulo="Não foi possível criar o perfil" />
             </div>
           </aside>
         </div>
         {perfilAtivo && <DadosCredorForm key={perfilAtivo.id} perfil={perfilAtivo} />}
+        <GerenciarExclusaoPerfis />
       </div>
     </div>
   );

@@ -10,7 +10,20 @@ import { AtrasadasTable } from "@/pages/Home/components/AtrasadasTable";
 
 export function Home() {
   const { perfilAtivo } = useProfile();
+  if (!perfilAtivo) {
+    return (
+      <div className="p-10">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <p className="mt-2 text-muted-foreground">
+          Selecione um perfil em Configurações para visualizar os dados.
+        </p>
+      </div>
+    );
+  }
+  return <HomePerfil key={perfilAtivo.id} />;
+}
 
+function HomePerfil() {
   const {
     period,
     setPeriod,
@@ -23,17 +36,6 @@ export function Home() {
   } = useDashboard();
 
   const [pageAtrasadas, setPageAtrasadas] = useState(1);
-
-  if (!perfilAtivo) {
-    return (
-      <div className="p-10">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="mt-2 text-muted-foreground">
-          Selecione um perfil em Configurações para visualizar os dados.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-10 bg-muted/40 p-10">

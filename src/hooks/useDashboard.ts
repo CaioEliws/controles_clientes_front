@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parcelasService } from "@/services/parcelas/parcelas.service";
 import { emprestimosService } from "@/services/emprestimos.service";
 import type { ParcelaResponse, EmprestimoDetalhado } from "@/types";
@@ -104,6 +104,8 @@ const filterEmprestimosByPeriod = (
 
 export function useDashboard() {
   const { perfilAtivo } = useProfile();
+  const requisicao = useRef(0);
+  useEffect(() => () => { requisicao.current += 1; }, []);
 
   const [period, setPeriod] = useState<Period>("all");
 
@@ -134,6 +136,7 @@ export function useDashboard() {
   }, []);
 
   const loadBaseData = useCallback(async () => {
+    const atual = ++requisicao.current;
     if (!perfilAtivo) {
       clearState();
       return;
@@ -157,6 +160,7 @@ export function useDashboard() {
         parcelasService.getPorStatus("PENDENTE"),
         parcelasService.getPorStatus("PARCIAL"),
       ]);
+      if (atual !== requisicao.current) return;
 
       const vencendo = ensureArray<ParcelaResponse>(vencendoResponse);
       const atrasado = ensureArray<ParcelaResponse>(atrasadoResponse);
@@ -185,10 +189,11 @@ export function useDashboard() {
         todosEmprestimos: todosEmprestimosFlat,
       };
     } catch (error) {
+      if (atual !== requisicao.current) return;
       console.error("Erro ao carregar dashboard:", error);
       clearState();
     } finally {
-      setLoading(false);
+      if (atual === requisicao.current) setLoading(false);
     }
   }, [perfilAtivo, clearState]);
 

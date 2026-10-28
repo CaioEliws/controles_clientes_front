@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -154,6 +155,7 @@ export function ModalRelatorio({
             Acompanhamento financeiro do cliente.
           </DialogDescription>
         </DialogHeader>
+        <DialogBody>
 
         {loading && (
           <div className="pt-4 text-sm text-muted-foreground">
@@ -181,6 +183,7 @@ export function ModalRelatorio({
             </div>
           </>
         )}
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

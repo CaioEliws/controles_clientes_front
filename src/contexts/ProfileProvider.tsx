@@ -9,6 +9,9 @@ import {
 import { apiClient } from "@/services/apiClient";
 import { ProfileContext, type Perfil, type PerfilUpdatePayload } from "./profileContextState";
 
+import { perfilExclusaoService } from "@/services/perfil-exclusao.service";
+import { ApiError } from "@/services/apiError";
+
 const PERFIL_STORAGE_KEY = "perfil_ativo_id";
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -16,8 +19,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [perfilAtivo, setPerfilAtivoState] = useState<Perfil | null>(null);
   const [loading, setLoading] = useState(false);
   const ativoIdRef = useRef<number | null>(null);
+  const perfisRef = useRef<Perfil[]>([]);
+  const excluidosRef = useRef(new Set<number>());
+  const excluindoRef = useRef<number | null>(null);
+  const [avisoExclusaoPerfil, setAvisoExclusaoPerfil] = useState<string | null>(null);
 
   const setPerfilAtivo = useCallback((perfil: Perfil | null) => {
+    if (perfil && excluidosRef.current.has(perfil.id)) perfil = perfisRef.current[0] ?? null;
     ativoIdRef.current = perfil?.id ?? null;
     setPerfilAtivoState(perfil);
 
@@ -34,7 +42,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       const response = await apiClient.get<Perfil[] | { perfis?: Perfil[]; data?: Perfil[] }>("/perfis");
 
-      const lista = Array.isArray(response)
+      const recebidos = Array.isArray(response)
         ? response
         : Array.isArray(response?.perfis)
         ? response.perfis
@@ -42,6 +50,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         ? response.data
         : [];
 
+      const lista = recebidos.filter(perfil => !excluidosRef.current.has(perfil.id));
+      perfisRef.current = lista;
       setPerfis(lista);
 
       const perfilSalvoId = localStorage.getItem(PERFIL_STORAGE_KEY);
@@ -65,6 +75,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Erro ao carregar perfis:", error);
+      perfisRef.current = [];
       setPerfis([]);
       setPerfilAtivo(null);
     } finally {
@@ -80,7 +91,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         nome,
       });
 
-      setPerfis((lista) => [...lista, novoPerfil]);
+      perfisRef.current = [...perfisRef.current, novoPerfil];
+      setPerfis(perfisRef.current);
       setPerfilAtivo(novoPerfil);
     } catch (error) {
       console.error("Erro ao criar perfil:", error);
@@ -91,7 +103,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [setPerfilAtivo]);
 
   const aplicarDadosPerfil = useCallback((perfil: Perfil) => {
-    setPerfis((lista) => lista.map((item) => item.id === perfil.id ? { ...item, ...perfil } : item));
+    perfisRef.current = perfisRef.current.map(item => item.id === perfil.id ? { ...item, ...perfil } : item);
+    setPerfis(perfisRef.current);
     if (ativoIdRef.current === perfil.id) {
       setPerfilAtivoState((atual) => atual?.id === perfil.id ? { ...atual, ...perfil } : atual);
     }
@@ -111,6 +124,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return perfil;
   }, [aplicarDadosPerfil]);
 
+  const excluirPerfil = useCallback(async (id: number, nomeConfirmacao: string) => {
+    if (excluindoRef.current !== null) throw new Error("Já existe uma exclusão de perfil em andamento.");
+    excluindoRef.current = id; setLoading(true); setAvisoExclusaoPerfil(null);
+    try {
+      await perfilExclusaoService.excluir(id, nomeConfirmacao);
+      excluidosRef.current.add(id);
+      const restantes = perfisRef.current.filter(perfil => perfil.id !== id);
+      perfisRef.current = restantes; setPerfis(restantes);
+      if (ativoIdRef.current === id) setPerfilAtivo(restantes[0] ?? null);
+      setAvisoExclusaoPerfil("Perfil excluído permanentemente.");
+    } catch (error) {
+      // Uma falha de comunicação pode ocorrer depois do commit. Reconciliar sem prometer rollback.
+      if (error instanceof ApiError && error.status === 0) await carregarPerfis();
+      throw error;
+    } finally { excluindoRef.current = null; setLoading(false); }
+  }, [setPerfilAtivo, carregarPerfis]);
+
   useEffect(() => {
     void carregarPerfis();
   }, [carregarPerfis]);
@@ -124,9 +154,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       criarPerfil,
       carregarPerfilDetalhado,
       atualizarPerfil,
+      excluirPerfil,
+      avisoExclusaoPerfil,
       loading,
     }),
-    [perfis, perfilAtivo, loading, setPerfilAtivo, carregarPerfis, criarPerfil, carregarPerfilDetalhado, atualizarPerfil]
+    [perfis, perfilAtivo, loading, setPerfilAtivo, carregarPerfis, criarPerfil, carregarPerfilDetalhado, atualizarPerfil, excluirPerfil, avisoExclusaoPerfil]
   );
 
   return (

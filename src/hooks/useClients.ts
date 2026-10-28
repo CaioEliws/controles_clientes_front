@@ -49,8 +49,6 @@ export function useClientes() {
         throw new Error("Nenhum perfil selecionado.");
       }
 
-      if (!window.confirm("Deseja realmente deletar?")) return;
-
       await clientesService.delete(id);
       await fetchClientes();
     },

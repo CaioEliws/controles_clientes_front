@@ -16,9 +16,10 @@ type Props = {
   triggerRef: (element: HTMLButtonElement | null) => void;
   disabled?: boolean;
   invalid?: boolean;
+  describedBy?: string;
 };
 
-export function FiadorSelector({ clientes, excluirClienteId, value, onChange, onBlur, triggerRef, disabled, invalid }: Props) {
+export function FiadorSelector({ clientes, excluirClienteId, value, onChange, onBlur, triggerRef, disabled, invalid, describedBy }: Props) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -40,14 +41,14 @@ export function FiadorSelector({ clientes, excluirClienteId, value, onChange, on
     <PopoverTrigger asChild>
       <Button id="fiadorId" ref={triggerRef} type="button" variant="outline" role="combobox"
         aria-label="Fiador" aria-expanded={open} aria-controls={`${id}-lista`} aria-haspopup="listbox"
-        aria-required="true" aria-invalid={invalid} disabled={disabled} onBlur={onBlur}
+        aria-required="true" aria-invalid={invalid} aria-describedby={describedBy} disabled={disabled} onBlur={onBlur}
         onKeyDown={event => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); mudarAbertura(true); } }}
-        className="h-10 w-full min-w-0 justify-between gap-3 text-left">
+        className="h-11 w-full rounded-lg border-slate-200 min-w-0 justify-between gap-3 text-left">
         <span className="truncate">{selected?.nome ?? "Buscar e selecionar fiador..."}</span>
         <ChevronsUpDown className="h-4 w-4 shrink-0" />
       </Button>
     </PopoverTrigger>
-    <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-2"
+    <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] rounded-xl border-slate-200 p-2 shadow-lg"
       onOpenAutoFocus={event => { event.preventDefault(); inputRef.current?.focus(); }}>
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -62,7 +63,7 @@ export function FiadorSelector({ clientes, excluirClienteId, value, onChange, on
             } else if (event.key === "Enter") { event.preventDefault(); if (ativo) selecionar(ativo); }
           }} />
       </div>
-      <div id={`${id}-lista`} role="listbox" aria-label="Fiadores disponíveis" className="mt-2 max-h-64 overflow-y-auto overscroll-contain">
+      <div id={`${id}-lista`} role="listbox" aria-label="Fiadores disponíveis" className="mt-2 max-h-[min(16rem,var(--radix-popover-content-available-height))] overflow-y-auto overscroll-contain">
         {resultados.map(cliente => <button id={`${id}-opcao-${cliente.id}`} key={cliente.id} type="button" role="option"
           aria-selected={String(cliente.id) === value} tabIndex={-1}
           className={`block w-full rounded-lg px-3 py-2 text-left text-sm break-words hover:bg-slate-100 ${ativo?.id === cliente.id ? "bg-slate-100" : ""}`}

@@ -3,15 +3,17 @@ import { FileSpreadsheet, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { apiClient } from "@/services/apiClient";
+import { ErroOperacao } from "@/components/ErroOperacao";
+import { textoPublico, rotulosCampos } from "@/services/apiError";
 
-type Detalhe = { linha: number; nome: string | null; cpf: string | null; status: string; motivo: string; camposConflitantes: string[]; camposPreenchidos: string[]; statusCsv: string; classificacao: string; comAviso: boolean; camposAusentes: string[]; match: string };
-type Resultado = { previa: boolean; totalLinhas: number; criados: number; existentes: number; atualizados: number; ignorados: number; conflitos: number; erros: number; detalhesTruncados: boolean; detalhes: Detalhe[]; importaveisSemRessalvas: number; importaveisComAviso: number; importadosComAviso: number; bloqueados: number; semWord: number; duplicidadesRevisar: number; clientesEncontradosPorNome: number; clientesEncontradosPorCpf: number; camposPreenchidos: number; conflitosPreservados: number; ambiguos: number; conflitosIdentidade: number; clientesAtualizados: number };
+type Detalhe = { linha: number; nome: string | null; cpf: string | null; status: string; motivo: string; camposConflitantes: string[]; camposPreenchidos: string[]; statusCsv: string; classificacao: string; comAviso: boolean; camposAusentes: string[]; match: string; nomeEncontrado?: string | null; confianca?: string | null; acao?: string; nomeAtualizado?: string | null };
+type Resultado = { previa: boolean; totalLinhas: number; criados: number; existentes: number; atualizados: number; ignorados: number; conflitos: number; erros: number; detalhesTruncados: boolean; detalhes: Detalhe[]; importaveisSemRessalvas: number; importaveisComAviso: number; importadosComAviso: number; bloqueados: number; semWord: number; duplicidadesRevisar: number; clientesEncontradosPorNome: number; clientesEncontradosPorCpf: number; camposPreenchidos: number; conflitosPreservados: number; ambiguos: number; conflitosIdentidade: number; clientesAtualizados: number; clientesEncontradosPorNomeAbreviado?: number; nomesExpandidos?: number };
 
 export function ImportacaoClientesCsvCard() {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [previa, setPrevia] = useState<Resultado | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<unknown>(null);
   const [filtro, setFiltro] = useState("Todos");
   const [ocupado, setOcupado] = useState(false);
   const perfilPrevia = useRef<string | null>(null);
@@ -36,7 +38,7 @@ export function ImportacaoClientesCsvCard() {
       if (confirmar) { setResultado(resposta); setPrevia(null); }
       else { setPrevia(resposta); perfilPrevia.current = perfil; setResultado(null); }
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Não foi possível importar os clientes.");
+      setErro(error);
       // Uma tentativa que falhou exige nova prévia; o backend deduplica uma eventual repetição.
       setPrevia(null);
     } finally { enviando.current = false; setOcupado(false); }
@@ -47,7 +49,7 @@ export function ImportacaoClientesCsvCard() {
       const texto = String(value ?? "");
       return `"${(/^[=+@\-\t\r]/.test(texto) ? "'" : "") + texto.replaceAll('"', '""')}"`;
     };
-    const linhas = [["linha", "nome", "cpf", "statusCsv", "classificacao", "acao", "match", "motivo"], ...resultado.detalhes.map(d => [d.linha, d.nome, d.cpf, d.statusCsv, d.classificacao, d.status, d.match, d.motivo])];
+    const linhas = [["linha", "nome", "cpf", "statusCsv", "classificacao", "acao", "match", "clienteEncontrado", "confianca", "nomeAtualizado", "motivo"], ...resultado.detalhes.map(d => [d.linha, d.nome, d.cpf, d.statusCsv, d.classificacao, d.status, d.match, d.nomeEncontrado, d.confianca, d.nomeAtualizado, d.motivo])];
     const blob = new Blob(["\uFEFF" + linhas.map(l => l.map(cell).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");
     link.href = url; link.download = "resultado_importacao_clientes.csv"; link.click(); URL.revokeObjectURL(url);
@@ -79,8 +81,8 @@ export function ImportacaoClientesCsvCard() {
         <input ref={input} id="clientes-csv" aria-label="Selecionar CSV" type="file" accept=".csv" disabled={ocupado} className="sr-only"
           onChange={event => { setArquivo(event.target.files?.[0] ?? null); setPrevia(null); setResultado(null); setErro(null); perfilPrevia.current = null; }} />
       </label>
-      <p className="text-sm text-muted-foreground">UTF-8, separado por ponto e vírgula. Linhas válidas e registros com avisos podem ser importados após confirmação. Registros bloqueados são preservados para revisão. Dados preenchidos no cadastro são preservados.</p>
-      {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
+      <p className="text-sm text-muted-foreground">UTF-8, separado por ponto e vírgula. Linhas válidas e registros com avisos podem ser importados após confirmação. Registros bloqueados são preservados para revisão. Dados preenchidos no cadastro são preservados; nomes abreviados podem ser expandidos com segurança.</p>
+      <ErroOperacao erro={erro} titulo="Não foi possível processar o CSV" />
       {!previa && !resultado && <Button className="w-full rounded-xl text-base disabled:cursor-not-allowed" disabled={!arquivo || ocupado} onClick={() => void enviar(false)}>
         {ocupado ? "Pré-visualizando..." : "Pré-visualizar CSV"}
       </Button>}
@@ -90,7 +92,9 @@ export function ImportacaoClientesCsvCard() {
         <dl className="grid grid-cols-2 gap-2 text-sm">
           <dt>Linhas</dt><dd>{resumo.totalLinhas}</dd>
           <dt>{previa ? "Novos clientes" : "Criados"}</dt><dd>{resumo.criados}</dd>
-          <dt>Clientes encontrados por nome</dt><dd>{resumo.clientesEncontradosPorNome}</dd>
+          <dt>Clientes encontrados por nome normalizado</dt><dd>{resumo.clientesEncontradosPorNome}</dd>
+          <dt>Clientes encontrados por nome abreviado</dt><dd>{resumo.clientesEncontradosPorNomeAbreviado ?? 0}</dd>
+          <dt>{previa ? "Nomes a expandir" : "Nomes expandidos"}</dt><dd>{resumo.nomesExpandidos ?? 0}</dd>
           <dt>Clientes encontrados por CPF</dt><dd>{resumo.clientesEncontradosPorCpf}</dd>
           <dt>{previa ? "A preencher" : "Atualizados"}</dt><dd>{resumo.clientesAtualizados}</dd>
           <dt>Conflitos preservados</dt><dd>{resumo.conflitos}</dd>
@@ -104,17 +108,22 @@ export function ImportacaoClientesCsvCard() {
           <dt>Inválidos / erros</dt><dd>{resumo.erros}</dd>
         </dl>
         {resumo.conflitos > 0 && <p className="text-sm">Campos em conflito serão mantidos. Campos vazios dessas linhas podem ser preenchidos.</p>}
-        {previa && <p className="text-sm">Serão processados {resumo.importaveisSemRessalvas} registros sem ressalvas e {resumo.importaveisComAviso} com avisos. Não serão importados {resumo.bloqueados} registros bloqueados. Valores preenchidos no banco continuam preservados. Serão criados {resumo.criados} clientes e completados {resumo.clientesAtualizados} cadastros existentes.</p>}
+        {previa && <p className="text-sm">Serão processados {resumo.importaveisSemRessalvas} registros sem ressalvas e {resumo.importaveisComAviso} com avisos. Não serão importados {resumo.bloqueados} registros bloqueados. Valores preenchidos no banco continuam preservados, exceto a expansão segura do nome abreviado. Serão criados {resumo.criados} clientes e completados {resumo.clientesAtualizados} cadastros existentes.</p>}
         <label htmlFor="filtro-csv" className="block text-sm font-medium">Filtrar registros</label>
         <select id="filtro-csv" className="h-9 w-full rounded-md border bg-background px-3 text-sm" value={filtro} onChange={event => setFiltro(event.target.value)}>
           {["Todos", "Novos", "Com aviso", "Conflitos", "Bloqueados", "Erros"].map(item => <option key={item}>{item}</option>)}
         </select>
         <div className="max-h-96 space-y-3 overflow-y-auto pr-1">
-          {detalhesFiltrados.map(d => <div key={d.linha} className="rounded-md border p-3 text-sm break-words">
+          {detalhesFiltrados.map(d => <div key={d.linha} className={`rounded-md border p-3 text-sm break-words ${d.status === "ERRO" || d.status === "BLOQUEADO" ? "border-red-200 bg-red-50/50" : d.comAviso ? "border-amber-200 bg-amber-50/50" : "border-slate-200"}`}>
             <p className="font-medium">Linha {d.linha}: {d.nome || "Sem nome"}{d.cpf ? ` (${d.cpf})` : ""}</p>
             <p>CSV: {d.statusCsv || "não informado"} · Importação: {d.classificacao?.replaceAll("_", " ") || d.status}</p>
-            <p>Match: {d.match || "não identificado"}</p>
-            <p>{d.motivo}</p>
+            <p>Match: {d.match || "não identificado"}{d.confianca ? ` · Confiança: ${d.confianca}` : ""}</p>
+            {d.nomeEncontrado && <p>Encontrado como: {d.nomeEncontrado}</p>}
+            {d.acao === "ATUALIZAR_CLIENTE_EXISTENTE" && <p>{previa ? "Será atualizado o cadastro existente." : "Cadastro existente atualizado."}</p>}
+            {d.nomeAtualizado && <p>{previa ? "Nome será atualizado" : "Nome atualizado"}: {d.nomeEncontrado} → {d.nomeAtualizado}</p>}
+            <p>{textoPublico(d.motivo, "Revise os dados desta linha antes de tentar novamente.")}</p>
+            {d.camposConflitantes?.length > 0 && <p className="text-amber-800">Campos em conflito: {d.camposConflitantes.map(c => rotulosCampos[c] ?? "Campo cadastral").join(", ")}. Confira o cadastro existente; os valores preenchidos serão preservados.</p>}
+            {d.camposAusentes?.length > 0 && <p className="text-slate-600">Dados ausentes: {d.camposAusentes.map(c => rotulosCampos[c] ?? "Campo cadastral").join(", ")}. Complete-os quando necessários à operação desejada.</p>}
           </div>)}
           {detalhesFiltrados.length === 0 && <p className="text-sm text-muted-foreground">Nenhum registro neste filtro.</p>}
         </div>

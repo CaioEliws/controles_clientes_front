@@ -1,18 +1,21 @@
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PdfAssinadoButton } from "@/components/contratos/PdfAssinadoButton";
 import { useEffect, useRef, useState } from "react";
 import { ExcluirContratoButton, AvisoContratoExcluido } from "@/components/contratos/ExcluirContratoButton";
 import { Button } from "@/components/ui/button";
 import { contratoService, type ContratoGeradoMetadados } from "@/services/contrato.service";
+import { ErroOperacao } from "@/components/ErroOperacao";
+import { CorrecaoDadosContrato } from "@/components/contratos/CorrecaoDadosContrato";
 
 type Props = { clienteId: number; emprestimoId: number; podeGerar: boolean };
-const mensagem = (error: unknown) => error instanceof Error ? error.message : "Não foi possível acessar os contratos.";
 
 export function ContratosGerados({ clienteId, emprestimoId, podeGerar }: Props) {
   const [historico, setHistorico] = useState<ContratoGeradoMetadados[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmacao, setConfirmacao] = useState(false);
   const [gerando, setGerando] = useState(false);
   const [baixando, setBaixando] = useState<number | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<unknown>(null);
   const [excluido, setExcluido] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const mounted = useRef(false);
@@ -23,13 +26,13 @@ export function ContratosGerados({ clienteId, emprestimoId, podeGerar }: Props) 
     mounted.current = true;
     contratoService.listar(clienteId, emprestimoId)
       .then((response) => { if (alive) setHistorico(response); })
-      .catch((error: unknown) => { if (alive) setErro(mensagem(error)); })
+      .catch((error: unknown) => { if (alive) setErro(error); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; mounted.current = false; };
   }, [clienteId, emprestimoId]);
 
   async function gerar() {
-    if (lock.current || !podeGerar || !window.confirm("Gerar um novo contrato com os dados exibidos atualmente?")) return;
+    if (lock.current || !podeGerar) return;
     lock.current = true;
     setGerando(true);
     setErro(null);
@@ -40,7 +43,7 @@ export function ContratosGerados({ clienteId, emprestimoId, podeGerar }: Props) 
         setHistorico((atual) => [contrato, ...atual]);
         setAviso(`Contrato #${contrato.id} gerado. O documento foi salvo no histórico.`);
       }
-    } catch (error) { if (mounted.current) setErro(mensagem(error)); }
+    } catch (error) { if (mounted.current) setErro(error); }
     finally { lock.current = false; if (mounted.current) setGerando(false); }
   }
 
@@ -60,17 +63,19 @@ export function ContratosGerados({ clienteId, emprestimoId, podeGerar }: Props) 
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) { if (mounted.current) setErro(mensagem(error)); }
+    } catch (error) { if (mounted.current) setErro(error); }
     finally { lock.current = false; if (mounted.current) setBaixando(null); }
   }
 
   return <section className="space-y-3 rounded-xl border p-4" aria-label="Contratos gerados">
+    <ConfirmDialog open={confirmacao} onOpenChange={setConfirmacao} title="Gerar contrato?" description="Gerar um novo contrato com os dados exibidos atualmente?" confirmText="Gerar contrato" onConfirm={gerar} />
     <h3 className="font-semibold">Contratos gerados</h3>
     <p className="text-sm text-slate-600">Neste modelo Word, o credor é Edson Antonio Vieira e a testemunha é Ivani Elias Machado Vieira. Os dados do perfil exibidos acima não substituem essas pessoas no documento.</p>
-    {podeGerar && <Button type="button" disabled={gerando || baixando !== null || loading} onClick={() => { void gerar(); }}>
+    {podeGerar && <Button type="button" disabled={gerando || baixando !== null || loading} onClick={() => setConfirmacao(true)}>
       {gerando ? "Gerando contrato..." : "Gerar contrato"}
     </Button>}
-    {erro && <p role="alert" className="text-sm text-red-600">{erro}</p>}
+    <ErroOperacao erro={erro} titulo="Não foi possível concluir a operação do contrato" />
+    <CorrecaoDadosContrato erro={erro} clienteId={clienteId} emprestimoId={emprestimoId} onCorrigido={() => { setErro(null); setAviso("Dados cadastrais atualizados. Consulte novamente os dados do contrato antes de gerar."); }} />
     {excluido && <AvisoContratoExcluido onClose={() => setExcluido(false)} />}
     {aviso && <p role="status" className="text-sm text-emerald-700">{aviso}</p>}
     {loading && <p role="status" className="text-sm">Carregando histórico...</p>}

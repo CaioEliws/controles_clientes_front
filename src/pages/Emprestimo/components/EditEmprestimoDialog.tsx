@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogBody,
 } from "@/components/ui/dialog";
 
 type Props = {
@@ -89,13 +90,14 @@ function EditEmprestimoForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl border-none bg-white sm:max-w-2xl">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Reprogramar parcelas do empréstimo</DialogTitle>
           <DialogDescription>
             Escolha a nova data base e o novo valor das parcelas em aberto.
           </DialogDescription>
         </DialogHeader>
+        <DialogBody>
 
         <div className="space-y-6 py-4">
           <div className="space-y-2">
@@ -248,7 +250,8 @@ function EditEmprestimoForm({
         </div>
 
         {erro && <p role="alert" className="text-sm text-red-600">{erro}</p>}
-        <DialogFooter className="gap-2 sm:justify-end">
+        </DialogBody>
+        <DialogFooter>
           <Button
             variant="ghost"
             type="button"

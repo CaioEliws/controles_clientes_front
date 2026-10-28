@@ -21,6 +21,8 @@ interface ProfileContextType {
   criarPerfil: (nome: string) => Promise<void>;
   carregarPerfilDetalhado: (id: number) => Promise<Perfil>;
   atualizarPerfil: (id: number, payload: PerfilUpdatePayload) => Promise<Perfil>;
+  excluirPerfil: (id: number, nomeConfirmacao: string) => Promise<void>;
+  avisoExclusaoPerfil: string | null;
   loading: boolean;
 }
 

@@ -65,6 +65,10 @@ export function useRelatorioParcelasPage() {
   const [clientSearchError, setClientSearchError] = useState<string | null>(null);
 
   const debounceRef = useRef<number | null>(null);
+  const consultaEmprestimos = useRef(0);
+  const consultaParcelas = useRef(0);
+  const [erroParcelas, setErroParcelas] = useState<string | null>(null);
+  const invalidarParcelas = useCallback(() => { consultaParcelas.current++; }, []);
 
   const clearState = useCallback(() => {
     setClientes([]);
@@ -115,6 +119,7 @@ export function useRelatorioParcelasPage() {
 
   const fetchEmprestimos = useCallback(
     async (clienteId: number) => {
+      const consulta = ++consultaEmprestimos.current;
       if (!perfilAtivo) {
         setEmprestimosRaw([]);
         setLoadingEmprestimos(false);
@@ -125,11 +130,13 @@ export function useRelatorioParcelasPage() {
 
       try {
         const data = await emprestimosService.getByCliente(clienteId);
+        if (consulta !== consultaEmprestimos.current) return;
         setEmprestimosRaw(Array.isArray(data) ? data : []);
       } catch {
+        if (consulta !== consultaEmprestimos.current) return;
         setEmprestimosRaw([]);
       } finally {
-        setLoadingEmprestimos(false);
+        if (consulta === consultaEmprestimos.current) setLoadingEmprestimos(false);
       }
     },
     [perfilAtivo]
@@ -137,6 +144,7 @@ export function useRelatorioParcelasPage() {
 
   const fetchParcelasByEmprestimo = useCallback(
     async (emprestimoId: number) => {
+      const consulta = ++consultaParcelas.current;
       if (!perfilAtivo) {
         setParcelas([]);
         setLoadingParcelas(false);
@@ -144,6 +152,8 @@ export function useRelatorioParcelasPage() {
       }
 
       setLoadingParcelas(true);
+      setParcelas([]);
+      setErroParcelas(null);
 
       try {
         const results = await Promise.all(
@@ -153,22 +163,20 @@ export function useRelatorioParcelasPage() {
         );
 
         const merged = results.flat();
+        if (consulta !== consultaParcelas.current) return;
 
         const filtered = merged
           .filter((parcela) => parcela.idEmprestimo === emprestimoId)
-          .sort((a, b) => {
-            if (a.status === "PAGO" && b.status !== "PAGO") return 1;
-            if (a.status !== "PAGO" && b.status === "PAGO") return -1;
-
-            return safeDateMs(a.dataVencimento) - safeDateMs(b.dataVencimento);
-          });
+          .sort((a, b) => a.numeroParcela - b.numeroParcela);
 
         setParcelas(filtered);
       } catch (error) {
+        if (consulta !== consultaParcelas.current) return;
+        setErroParcelas("Não foi possível carregar as parcelas. Selecione o empréstimo novamente para tentar outra vez.");
         console.error("Erro ao buscar parcelas do empréstimo:", error);
         setParcelas([]);
       } finally {
-        setLoadingParcelas(false);
+        if (consulta === consultaParcelas.current) setLoadingParcelas(false);
       }
     },
     [perfilAtivo]
@@ -176,6 +184,9 @@ export function useRelatorioParcelasPage() {
 
   const handleSelectCliente = useCallback(
     (id: number | null) => {
+      consultaEmprestimos.current++;
+      consultaParcelas.current++;
+      setErroParcelas(null);
       setSelectedCliente(id);
       setSelectedEmprestimoId(null);
       setEmprestimosRaw([]);
@@ -303,9 +314,13 @@ export function useRelatorioParcelasPage() {
     }
 
     void fetchParcelasByEmprestimo(selectedEmprestimoId);
-  }, [selectedEmprestimoId, fetchParcelasByEmprestimo, perfilAtivo]);
+    return invalidarParcelas;
+  }, [selectedEmprestimoId, fetchParcelasByEmprestimo, perfilAtivo, invalidarParcelas]);
 
   const clearFilters = useCallback(() => {
+    consultaEmprestimos.current++;
+    consultaParcelas.current++;
+    setErroParcelas(null);
     setClientSearch("");
     setClientSearchError(null);
     setSelectedCliente(null);
@@ -337,9 +352,11 @@ export function useRelatorioParcelasPage() {
     emprestimos,
     selectedEmprestimoId,
     selectedEmprestimoLabel,
+    selectedEmprestimo: emprestimosRaw.find((e) => e.id === selectedEmprestimoId) ?? null,
+    erroParcelas,
     setSelectedEmprestimoId,
 
-    parcelas,
+    parcelas: parcelas.filter((p) => p.idEmprestimo === selectedEmprestimoId),
 
     loadingClientes,
     loadingEmprestimos,

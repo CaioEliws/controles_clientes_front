@@ -1,6 +1,7 @@
 import type { ParcelaResponse } from "@/types";
 
 export type ParcelaTable = {
+  origem: ParcelaResponse;
   idEmprestimo: number;
   numeroParcela: number;
   cliente: string;
@@ -34,6 +35,7 @@ function toNumber(value: string | number | null | undefined): number {
 
 export function mapParcelaToTable(parcela: ParcelaResponse): ParcelaTable {
   return {
+    origem: parcela,
     idEmprestimo: parcela.idEmprestimo,
     numeroParcela: parcela.numeroParcela,
     cliente: parcela.nomeCliente ?? "Cliente",

@@ -5,7 +5,9 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogBody, DialogSection,
 } from "@/components/ui/dialog";
+import { CalendarDays, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -196,7 +198,7 @@ export function AlterarParcelaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl rounded-2xl border-none bg-white">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Alterar Parcela #{numeroParcela}</DialogTitle>
           <DialogDescription>
@@ -204,16 +206,18 @@ export function AlterarParcelaDialog({
             observações se necessário.
           </DialogDescription>
         </DialogHeader>
+        <DialogBody>
+        <DialogSection title="Dados da parcela" icon={<CalendarDays />}>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+        <form id="alterar-parcela-form" onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="parcela-data" className="text-sm font-semibold text-slate-700">
               Nova Data
             </label>
 
             <div className="relative">
               <Input
-                type="date"
+                id="parcela-data" type="date"
                 {...restDataRegister}
                 ref={(el) => {
                   registerDataRef(el);
@@ -224,6 +228,7 @@ export function AlterarParcelaDialog({
 
               <button
                 type="button"
+                aria-label="Abrir calendário"
                 onClick={() =>
                   (
                     inputRef.current as
@@ -233,7 +238,7 @@ export function AlterarParcelaDialog({
                 }
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                📅
+                <span aria-hidden="true">📅</span>
               </button>
             </div>
 
@@ -245,12 +250,12 @@ export function AlterarParcelaDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="parcela-valor" className="text-sm font-semibold text-slate-700">
               Novo Valor
             </label>
 
             <Input
-              type="text"
+              id="parcela-valor" type="text"
               inputMode="numeric"
               value={valorAtualInput}
               onChange={(e) => {
@@ -274,33 +279,19 @@ export function AlterarParcelaDialog({
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:justify-end">
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
 
-            <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
         </form>
+        </DialogSection>
 
-        <div className="mt-2 border-t pt-6">
+        <DialogSection title="Observações" icon={<MessageSquareText />} className="border-t border-slate-100 pt-5">
           <div className="space-y-2">
-            <h3 className="text-base font-semibold text-slate-800">
-              Observações
-            </h3>
             <p className="text-sm text-slate-500">
               Adicione acordos, anotações e alterações combinadas com o cliente.
             </p>
           </div>
 
           <div className="mt-4 space-y-3">
-            <Textarea
+            <Textarea aria-label="Nova observação"
               placeholder="Ex: Cliente pediu para mudar a data de pagamento para o dia 20/03."
               value={novaObservacao}
               onChange={(e) => setNovaObservacao(e.target.value)}
@@ -377,7 +368,7 @@ export function AlterarParcelaDialog({
 
                     {emEdicao ? (
                       <div className="space-y-3">
-                        <Textarea
+                        <Textarea aria-label="Editar observação"
                           rows={4}
                           value={textoEdicao}
                           onChange={(e) => setTextoEdicao(e.target.value)}
@@ -414,7 +405,21 @@ export function AlterarParcelaDialog({
               })
             )}
           </div>
-        </div>
+        </DialogSection>
+        </DialogBody>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+
+            <Button type="submit" form="alterar-parcela-form" disabled={loading}>
+              {loading ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
       </DialogContent>
     </Dialog>
   );

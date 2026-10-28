@@ -5,6 +5,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,7 +95,7 @@ export function AlterarParcelaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl bg-white border-none">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Alterar Parcela #{numeroParcela}</DialogTitle>
           <DialogDescription>
@@ -102,15 +103,16 @@ export function AlterarParcelaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <DialogBody>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="parcela-data" className="text-sm font-semibold text-slate-700">
               Nova Data
             </label>
 
             <div className="relative">
               <Input
-                type="date"
+                id="parcela-data" type="date"
                 {...restDataRegister}
                 ref={(el) => {
                   registerDataRef(el);
@@ -121,10 +123,11 @@ export function AlterarParcelaDialog({
 
               <button
                 type="button"
+                aria-label="Abrir calendário"
                 onClick={() => inputRef.current?.showPicker()}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                📅
+                <span aria-hidden="true">📅</span>
               </button>
             </div>
 
@@ -136,12 +139,12 @@ export function AlterarParcelaDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="parcela-valor" className="text-sm font-semibold text-slate-700">
               Novo Valor
             </label>
 
             <Input
-              type="text"
+              id="parcela-valor" type="text"
               inputMode="numeric"
               value={valorAtualInput}
               onChange={(e) => {
@@ -164,7 +167,8 @@ export function AlterarParcelaDialog({
             )}
           </div>
 
-          <DialogFooter className="sm:justify-end gap-2">
+          </DialogBody>
+        <DialogFooter>
             <Button
               variant="ghost"
               type="button"

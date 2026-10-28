@@ -52,7 +52,7 @@ function ParcelasDoPerfil() {
 
   return (
     <div className="flex min-h-screen bg-slate-50/50">
-      <main className="flex-1 space-y-8 p-8 min-w-0">
+      <main className="mx-auto min-w-0 max-w-[1600px] flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
         {vm.erro && <p role="alert" className="text-sm text-red-600">{vm.erro}</p>}
         {vm.loading ? (
           <ParcelasSkeleton />
@@ -75,6 +75,7 @@ function ParcelasDoPerfil() {
             <ParcelasTable
               loading={vm.loading}
               parcelas={vm.paginated}
+              parcelasFiltradas={vm.filtradas}
               uniqueClients={vm.uniqueClients}
               selectedClients={vm.selectedClients}
               selectedStatuses={vm.selectedStatuses}

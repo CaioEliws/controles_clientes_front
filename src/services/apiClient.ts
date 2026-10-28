@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { ApiError, erroDaApi } from "./apiError";
 
 const API_URL = env.API_URL;
 const PERFIL_STORAGE_KEY = "perfil_ativo_id";
@@ -12,7 +13,7 @@ function buildHeaders(options?: RequestInit) {
     ...((options?.headers as Record<string, string>) || {}),
   };
 
-  if (perfilId) {
+  if (perfilId && !Object.hasOwn(headers, "X-Perfil-Id")) {
     headers["X-Perfil-Id"] = perfilId;
   }
 
@@ -21,6 +22,7 @@ function buildHeaders(options?: RequestInit) {
 
 function mensagemOperacao(endpoint: string, method = "GET") {
   if (endpoint.includes("/download") || endpoint === "/export") return "Não foi possível baixar o arquivo.";
+  if (method === "DELETE" && /^\/perfis\/\d+$/.test(endpoint)) return "Não foi possível excluir o perfil.";
   if (method === "DELETE") return endpoint.includes("/contratos/") ? "Não foi possível excluir o contrato." : endpoint.includes("/emprestimos/") ? "Não foi possível excluir o empréstimo." : "Não foi possível excluir o cliente.";
   if (endpoint.includes("/contratos") && method === "POST") return "Não foi possível gerar o documento.";
   if (endpoint.startsWith("/parcelas/pagar")) return "Não foi possível registrar o pagamento.";
@@ -31,21 +33,17 @@ function mensagemOperacao(endpoint: string, method = "GET") {
   return "Não foi possível concluir a operação.";
 }
 
-function mensagemSegura(data: unknown, fallback: string) {
-  const obj = data && typeof data === "object" ? data as { message?: unknown; error?: unknown } : null;
-  const message = obj?.message ?? obj?.error;
-  return typeof message === "string" && message.trim() && !/SQL|Hibernate|constraint|stacktrace|java\.|org\.|<html|Exception:|jdbc:/i.test(message) ? message : fallback;
-}
-
 async function fetchComLimite(endpoint: string, options: RequestInit) {
   const fallback = mensagemOperacao(endpoint, options.method);
   const controller = new AbortController();
   const forwardAbort = () => controller.abort();
   options.signal?.addEventListener("abort", forwardAbort, { once: true });
   if (options.signal?.aborted) controller.abort();
-  const timer = window.setTimeout(() => controller.abort(), (endpoint.endsWith("/contratos") && options.method === "POST") || endpoint.startsWith("/import/clientes") ? 150000 : 30000);
+  const timer = window.setTimeout(() => controller.abort(), (endpoint.endsWith("/contratos") && options.method === "POST") || endpoint.startsWith("/import/clientes") || (options.method === "DELETE" && /^\/perfis\/\d+$/.test(endpoint)) ? 150000 : 30000);
   try { return await fetch(`${API_URL}${endpoint}`, { ...options, signal: controller.signal, headers: buildHeaders(options) }); }
-  catch { throw new Error(fallback); }
+  catch { throw new ApiError(controller.signal.aborted
+    ? "Não foi possível confirmar a resposta no prazo. Confira o resultado na lista antes de repetir a operação."
+    : `${fallback} Verifique sua conexão e tente novamente.`, 0, controller.signal.aborted ? "TEMPO_ESGOTADO" : "COMUNICACAO", [], "comunicacao"); }
   finally { window.clearTimeout(timer); options.signal?.removeEventListener("abort", forwardAbort); }
 }
 
@@ -55,14 +53,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   const contentType = response.headers.get("content-type") || "";
   let data: unknown = null;
 
-  if (contentType.includes("application/json")) {
+  if (contentType.includes("json")) {
     data = await response.json().catch(() => null);
   } else {
     const text = await response.text().catch(() => "");
     data = text || null;
   }
 
-  if (!response.ok) throw new Error(mensagemSegura(data, mensagemOperacao(endpoint, options.method)));
+  if (!response.ok) throw erroDaApi(data, response.status, mensagemOperacao(endpoint, options.method));
 
   return data as T;
 }
@@ -71,7 +69,7 @@ async function downloadBlob(endpoint: string, nomePadrao = "contrato.docx"): Pro
   const response = await fetchComLimite(endpoint, { method: "GET" });
   if (!response.ok) {
     const data: unknown = await response.json().catch(() => null);
-    throw new Error(mensagemSegura(data, "Não foi possível baixar o arquivo."));
+    throw erroDaApi(data, response.status, "Não foi possível baixar o arquivo.");
   }
   const disposition = response.headers.get("Content-Disposition") ?? "";
   const extended = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];

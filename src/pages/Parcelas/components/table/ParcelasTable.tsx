@@ -1,13 +1,18 @@
+import { useCallback, useState } from "react";
+import { CobrarWhatsappButton } from "@/components/CobrarWhatsappButton";
+import { Button } from "@/components/ui/button";
+import { normalizarWhatsapp } from "@/utils/whatsapp";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody } from "@/components/ui/table";
 
-import type { ParcelaResponse, StatusParcela } from "@/types";
+import type { Cliente, ParcelaResponse, StatusParcela } from "@/types";
 import { ParcelasTableHeader } from "@/pages/Parcelas/components/table/ParcelasTableHeader";
 import { ParcelasTableRow } from "@/pages/Parcelas/components/table/ParcelasTableRow";
 
 interface Props {
   loading: boolean;
   parcelas: ParcelaResponse[];
+  parcelasFiltradas: ParcelaResponse[];
   uniqueClients: string[];
   selectedClients: string[];
   selectedStatuses: StatusParcela[];
@@ -26,6 +31,7 @@ const TABLE_COLS = 7;
 export function ParcelasTable({
   loading,
   parcelas,
+  parcelasFiltradas,
   uniqueClients,
   selectedClients,
   selectedStatuses,
@@ -38,12 +44,22 @@ export function ParcelasTable({
   onAlterarParcela,
   onDesfazerPagamento,
 }: Props) {
+  const [contatos, setContatos] = useState<Record<number, Cliente>>({});
+  const atualizarContato = useCallback((cliente: Cliente) => setContatos((atuais) => ({ ...atuais, [cliente.id]: cliente })), []);
+  const primeiro = parcelasFiltradas[0];
+  const clienteUnico = primeiro?.clienteId && parcelasFiltradas.every((p) => p.clienteId === primeiro.clienteId) ? primeiro : null;
+  const contatoUnico = clienteUnico?.clienteId ? contatos[clienteUnico.clienteId] : undefined;
+  const semTelefone = clienteUnico && !normalizarWhatsapp(contatoUnico ? contatoUnico.telefoneWhatsapp : clienteUnico.telefoneWhatsapp);
   return (
     <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
       <CardContent className="p-0">
-        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-          <div className="min-w-[980px]">
-            <Table className="w-full whitespace-nowrap text-sm">
+        {semTelefone && clienteUnico && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-600" role="status">
+          <p>{clienteUnico.nomeCliente} ainda não possui WhatsApp válido cadastrado.</p>
+          <CobrarWhatsappButton parcela={clienteUnico} contatoAtualizado={contatoUnico} onContatoAtualizado={atualizarContato} renderControls={({ editar, ocupado }) => <Button type="button" variant="outline" className="h-9 rounded-lg border-slate-200 bg-white text-sm" onClick={editar} disabled={ocupado}>{ocupado ? "Consultando contato..." : "Cadastrar WhatsApp"}</Button>} />
+        </div>}
+        <div aria-label="Tabela de parcelas — role horizontalmente em telas menores" tabIndex={0} className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-300 [-webkit-overflow-scrolling:touch]">
+          <div className="min-w-[1080px]">
+            <Table aria-label="Parcelas dos clientes" className="w-full whitespace-nowrap text-sm">
               <ParcelasTableHeader
                 uniqueClients={uniqueClients}
                 selectedClients={selectedClients}
@@ -87,6 +103,9 @@ export function ParcelasTable({
                     <ParcelasTableRow
                       key={`${parcela.idEmprestimo}-${parcela.numeroParcela}`}
                       parcela={parcela}
+                      contatoAtualizado={parcela.clienteId ? contatos[parcela.clienteId] : undefined}
+                      onContatoAtualizado={atualizarContato}
+                      mostrarIndicadorContato={!clienteUnico}
                       onPagar={onPagar}
                       onAlterarParcela={onAlterarParcela}
                       onDesfazerPagamento={onDesfazerPagamento}

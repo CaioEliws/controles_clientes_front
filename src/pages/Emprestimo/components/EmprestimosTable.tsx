@@ -165,6 +165,7 @@ export function EmprestimosTable({
       </section>
 
       <ConfirmActionDialog
+        destructive={actions.actionType === "DELETAR"}
         open={actions.isOpen && actions.actionType !== "EDITAR"}
         onOpenChange={(open) => {
           if (!open) actions.close();

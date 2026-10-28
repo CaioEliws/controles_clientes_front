@@ -4,6 +4,7 @@ export function useConsulta<T>(carregar: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [erroOriginal, setErroOriginal] = useState<unknown>(null);
   const [tentativa, setTentativa] = useState(0);
   const pedido = useRef<{ carregar: typeof carregar; tentativa: number; promise: Promise<T> } | null>(null);
   useEffect(() => {
@@ -12,14 +13,15 @@ export function useConsulta<T>(carregar: () => Promise<T>) {
       pedido.current = { carregar, tentativa, promise: carregar() };
     }
     pedido.current.promise.then((response) => { if (alive) setData(response); })
-      .catch((erro: unknown) => { if (alive) setError(erro instanceof Error ? erro.message : "Não foi possível carregar os dados."); })
+      .catch((erro: unknown) => { if (alive) { setErroOriginal(erro); setError(erro instanceof Error ? erro.message : "Não foi possível carregar os dados."); } })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [carregar, tentativa]);
   function recarregar() {
     setLoading(true);
     setError(null);
+    setErroOriginal(null);
     setTentativa((value) => value + 1);
   }
-  return { data, setData, loading, error, recarregar };
+  return { data, setData, loading, error, erroOriginal, recarregar };
 }

@@ -5,6 +5,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,7 +81,7 @@ export function AlterarDataParcelaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl bg-white border-none">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
             Alterar Data da Parcela #{numeroParcela}
@@ -90,15 +91,16 @@ export function AlterarDataParcelaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <DialogBody>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="parcela-data" className="text-sm font-semibold text-slate-700">
               Nova Data
             </label>
 
             <div className="relative">
               <Input
-                type="date"
+                id="parcela-data" type="date"
                 {...restRegister}
                 ref={(el) => {
                   registerRef(el);
@@ -109,6 +111,7 @@ export function AlterarDataParcelaDialog({
 
               <button
                 type="button"
+                aria-label="Abrir calendário"
                 onClick={() =>
                   (
                     inputRef.current as
@@ -118,7 +121,7 @@ export function AlterarDataParcelaDialog({
                 }
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                📅
+                <span aria-hidden="true">📅</span>
               </button>
             </div>
 
@@ -129,7 +132,8 @@ export function AlterarDataParcelaDialog({
             )}
           </div>
 
-          <DialogFooter className="sm:justify-end gap-2">
+          </DialogBody>
+        <DialogFooter>
             <Button
               variant="ghost"
               type="button"

@@ -6,6 +6,7 @@ import type { CriarEmprestimoDTO } from "@/services/emprestimos.service";
 import { parseCurrency } from "@/utils/format";
 import { useProfile } from "@/contexts/ProfileContext";
 import type { Cliente } from "@/types";
+import { ApiError } from "@/services/apiError";
 
 const schema = z.object({
   clienteId: z.string().min(1, "Selecione um cliente"),
@@ -15,7 +16,7 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, "Informe o valor")
-    .refine((v) => parseCurrency(v) > 0, "Valor deve ser maior que 0"),
+    .refine((v) => parseCurrency(v) > 0, "Informe um valor emprestado maior que zero."),
 
   quantidadeParcelas: z
     .string()
@@ -23,8 +24,8 @@ const schema = z.object({
     .min(1, "Informe a quantidade")
     .refine((v) => {
       const n = Number(v);
-      return Number.isFinite(n) && n > 0;
-    }, "Parcelas deve ser maior que 0"),
+      return Number.isInteger(n) && n > 0;
+    }, "A quantidade de parcelas deve ser um número inteiro maior que zero."),
 
   jurosCobrado: z
     .string()
@@ -32,8 +33,8 @@ const schema = z.object({
     .min(1, "Informe o juros")
     .refine((v) => {
       const n = Number(v.replace(",", "."));
-      return Number.isFinite(n) && n >= 0 && n <= 100;
-    }, "Juros deve estar entre 0 e 100"),
+      return Number.isFinite(n) && n >= 0;
+    }, "Informe uma taxa de juros válida e não negativa."),
 
   formaPagamento: z.string().min(1, "Selecione a forma"),
 
@@ -72,10 +73,10 @@ export function useEmprestimo(clientes: Cliente[]) {
       throw new Error("Nenhum perfil selecionado.");
     }
     if (!clientes.some((cliente) => cliente.id === Number(data.clienteId))) {
-      throw new Error("Selecione um devedor do perfil ativo.");
+      throw new ApiError("O cliente selecionado não foi encontrado. Atualize a lista e tente novamente.", 404, "CLIENTE_NAO_ENCONTRADO", [], "naoEncontrado");
     }
     if (!data.fiadorId || !clientes.some((cliente) => cliente.id === Number(data.fiadorId))) {
-      throw new Error("Selecione um fiador do perfil ativo.");
+      throw new ApiError("Selecione um fiador do Perfil ativo.", 400, "FIADOR_INVALIDO", [{ campo: "fiadorId", mensagem: "Selecione um fiador do Perfil ativo para continuar." }], "validacao");
     }
 
     const payload: CriarEmprestimoDTO = {

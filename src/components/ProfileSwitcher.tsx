@@ -1,3 +1,4 @@
+import { ErroOperacao } from "@/components/ErroOperacao";
 import { useState } from "react";
 import { useProfile } from "@/contexts/ProfileContext";
 
@@ -11,6 +12,7 @@ export function ProfileSwitcher() {
   } = useProfile();
 
   const [novoPerfil, setNovoPerfil] = useState("");
+  const [erroCriacao, setErroCriacao] = useState<unknown>(null);
   const [criando, setCriando] = useState(false);
 
   async function handleCriarPerfil() {
@@ -18,11 +20,12 @@ export function ProfileSwitcher() {
     if (!nome) return;
 
     try {
+      setErroCriacao(null);
       setCriando(true);
       await criarPerfil(nome);
       setNovoPerfil("");
     } catch {
-      alert("Não foi possível criar o perfil.");
+      setErroCriacao("Não foi possível criar o perfil.");
     } finally {
       setCriando(false);
     }
@@ -74,6 +77,7 @@ export function ProfileSwitcher() {
         >
           {criando ? "Criando..." : "Criar perfil"}
         </button>
+        <ErroOperacao erro={erroCriacao} titulo="Não foi possível criar o perfil" />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from "react";
+import { ErroOperacao } from "@/components/ErroOperacao";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,6 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,7 @@ export function PagarParcelaDialog({
   valorPago = 0,
   onSuccess,
 }: Props) {
+  const [erroPagamento, setErroPagamento] = useState<unknown>(null);
   const saldoRestante = Math.max(valorParcela - valorPago, 0);
   const temPagamentoParcial = valorPago > 0 && saldoRestante > 0;
 
@@ -133,6 +136,7 @@ export function PagarParcelaDialog({
   };
 
   const onSubmit = async (data: FormData) => {
+    setErroPagamento(null);
     const valorInformado = parseCurrency(data.valorPago);
 
     try {
@@ -149,17 +153,13 @@ export function PagarParcelaDialog({
       await onSuccess?.();
       onOpenChange(false);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert("Erro inesperado ao pagar parcela.");
-      }
+      setErroPagamento(err instanceof Error ? err.message : "Erro inesperado ao pagar parcela.");
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl border-none bg-white sm:max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-slate-900">
             Pagar Parcela #{numeroParcela}
@@ -169,7 +169,8 @@ export function PagarParcelaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <DialogBody>
           {temPagamentoParcial ? (
             <div className="space-y-3">
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -219,12 +220,12 @@ export function PagarParcelaDialog({
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label htmlFor="parcela-pagamento" className="text-sm font-medium text-slate-700">
               Valor á Pagar
             </label>
 
             <Input
-              {...valorPagoField}
+              id="parcela-pagamento" {...valorPagoField}
               inputMode="numeric"
               placeholder="R$ 0,00"
               value={valorPagoRaw}
@@ -252,7 +253,9 @@ export function PagarParcelaDialog({
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:justify-end">
+          <ErroOperacao erro={erroPagamento} titulo="Não foi possível registrar o pagamento" />
+          </DialogBody>
+        <DialogFooter>
             <Button
               variant="ghost"
               type="button"

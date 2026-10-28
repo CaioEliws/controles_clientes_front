@@ -2,6 +2,7 @@ import { apiClient } from "./apiClient";
 import type { Cliente, DadosPessoais, Emprestimo } from "@/types";
 
 export interface ClienteUpdatePayload extends DadosPessoais {
+  telefoneWhatsapp?: string | null;
   nome: string;
   nomeIndicador: string | null;
 }
